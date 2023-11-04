@@ -108,7 +108,7 @@ static void spawn(void) {
   ASSERT_OK(pipe_open);
 
   args[0] = exepath;
-  args[1] = "spawn_helper";
+  args[1] = (char*) "spawn_helper";
   args[2] = NULL;
   options.file = exepath;
   options.args = args;
@@ -119,7 +119,7 @@ static void spawn(void) {
   options.stdio = stdio;
   options.stdio_count = 2;
   options.stdio[0].flags = UV_IGNORE;
-  options.stdio[1].flags = UV_CREATE_PIPE | UV_WRITABLE_PIPE;
+  options.stdio[1].flags = (uv_stdio_flags)(UV_CREATE_PIPE | UV_WRITABLE_PIPE);
   options.stdio[1].data.stream = (uv_stream_t*)&out;
 
   r = uv_spawn(loop, &process, &options);
@@ -140,8 +140,12 @@ BENCHMARK_IMPL(spawn) {
 
   loop = uv_default_loop();
 
+#ifdef __VMS
+  exepath_size = 0;
+#else
   r = uv_exepath(exepath, &exepath_size);
   ASSERT_OK(r);
+#endif
   exepath[exepath_size] = '\0';
 
   uv_update_time(loop);

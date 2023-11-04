@@ -68,7 +68,7 @@ static int test_async_pummel(int nthreads) {
   uint64_t time;
   int i;
 
-  tids = calloc(nthreads, sizeof(tids[0]));
+  tids = (uv_thread_t*) calloc(nthreads, sizeof(tids[0]));
   ASSERT_NOT_NULL(tids);
 
   ASSERT_OK(uv_async_init(uv_default_loop(), &handle, async_cb));

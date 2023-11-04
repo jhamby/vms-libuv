@@ -46,7 +46,7 @@ static void on_write(uv_write_t* req, int status) {
 }
 
 static void do_write(uv_stream_t* stream, uv_write_cb cb) {
-  uv_write_t* req = malloc(sizeof(*req));
+  uv_write_t* req = (uv_write_t*) malloc(sizeof(*req));
   uv_buf_t buf;
   buf.base = "1234578";
   buf.len = 8;

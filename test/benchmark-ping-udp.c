@@ -116,7 +116,7 @@ static void pinger_read_cb(uv_udp_t* udp,
 }
 
 static void udp_pinger_new(void) {
-  pinger_t* pinger = malloc(sizeof(*pinger));
+  pinger_t* pinger = (pinger_t*) malloc(sizeof(*pinger));
   int r;
 
   ASSERT_OK(uv_ip4_addr("127.0.0.1", TEST_PORT, &pinger->server_addr));

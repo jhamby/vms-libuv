@@ -31,7 +31,7 @@ static int connect_cb_called = 0;
 
 
 static void alloc_cb(uv_handle_t* handle, size_t size, uv_buf_t* buf) {
-  buf->base = malloc(size);
+  buf->base = (char*) malloc(size);
   buf->len = size;
 }
 
@@ -152,7 +152,7 @@ static void connect_cb(uv_connect_t* req, int status) {
 static void client_connect(void) {
   struct sockaddr_in addr;
   uv_tcp_t* client = (uv_tcp_t*)malloc(sizeof *client);
-  uv_connect_t* connect_req = malloc(sizeof *connect_req);
+  uv_connect_t* connect_req = (uv_connect_t*) malloc(sizeof *connect_req);
   int r;
 
   ASSERT_OK(uv_ip4_addr("127.0.0.1", TEST_PORT, &addr));

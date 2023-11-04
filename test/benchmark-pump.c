@@ -357,7 +357,7 @@ static void buf_alloc(uv_handle_t* handle, size_t size, uv_buf_t* buf) {
   if (ab != NULL)
     buf_freelist = ab->next;
   else {
-    ab = malloc(size + sizeof(*ab));
+    ab = (buf_list_t*) malloc(size + sizeof(*ab));
     ab->uv_buf_t.len = size;
     ab->uv_buf_t.base = (char*) (ab + 1);
   }

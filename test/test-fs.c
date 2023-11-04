@@ -212,7 +212,7 @@ static void symlink_cb(uv_fs_t* req) {
 static void readlink_cb(uv_fs_t* req) {
   ASSERT_EQ(req->fs_type, UV_FS_READLINK);
   ASSERT_OK(req->result);
-  ASSERT_OK(strcmp(req->ptr, "test_file_symlink2"));
+  ASSERT_OK(strcmp((const char*) req->ptr, "test_file_symlink2"));
   readlink_cb_count++;
   uv_fs_req_cleanup(req);
 }
@@ -230,7 +230,7 @@ static void realpath_cb(uv_fs_t* req) {
   ASSERT_OK(stricmp(req->ptr, test_file_abs_buf));
 #else
   strcat(test_file_abs_buf, "/test_file");
-  ASSERT_OK(strcmp(req->ptr, test_file_abs_buf));
+  ASSERT_OK(strcmp((const char*) req->ptr, test_file_abs_buf));
 #endif
   realpath_cb_count++;
   uv_fs_req_cleanup(req);
@@ -322,7 +322,7 @@ static void unlink_cb(uv_fs_t* req) {
 }
 
 static void fstat_cb(uv_fs_t* req) {
-  uv_stat_t* s = req->ptr;
+  uv_stat_t* s = (uv_stat_t*) req->ptr;
   ASSERT_EQ(req->fs_type, UV_FS_FSTAT);
   ASSERT_OK(req->result);
   ASSERT_EQ(s->st_size, sizeof(test_buf));
@@ -337,7 +337,7 @@ static void statfs_cb(uv_fs_t* req) {
   ASSERT_EQ(req->fs_type, UV_FS_STATFS);
   ASSERT_OK(req->result);
   ASSERT_NOT_NULL(req->ptr);
-  stats = req->ptr;
+  stats = (uv_statfs_t*) req->ptr;
 
 #if defined(_WIN32) || defined(__sun) || defined(_AIX) || defined(__MVS__) || \
   defined(__OpenBSD__) || defined(__NetBSD__)
@@ -872,7 +872,7 @@ static void utime_cb(uv_fs_t* req) {
   ASSERT_OK(req->result);
   ASSERT_EQ(req->fs_type, UV_FS_UTIME);
 
-  c = req->data;
+  c = (utime_check_t*) req->data;
   check_utime(c->path, c->atime, c->mtime, /* test_lutime */ 0);
 
   uv_fs_req_cleanup(req);
@@ -887,7 +887,7 @@ static void futime_cb(uv_fs_t* req) {
   ASSERT_OK(req->result);
   ASSERT_EQ(req->fs_type, UV_FS_FUTIME);
 
-  c = req->data;
+  c = (utime_check_t*) req->data;
   check_utime(c->path, c->atime, c->mtime, /* test_lutime */ 0);
 
   uv_fs_req_cleanup(req);
@@ -901,7 +901,7 @@ static void lutime_cb(uv_fs_t* req) {
   ASSERT_OK(req->result);
   ASSERT_EQ(req->fs_type, UV_FS_LUTIME);
 
-  c = req->data;
+  c = (utime_check_t*) req->data;
   check_utime(c->path, c->atime, c->mtime, /* test_lutime */ 1);
 
   uv_fs_req_cleanup(req);
@@ -1422,7 +1422,7 @@ TEST_IMPL(fs_fstat) {
   ASSERT_OK(fstat(file, &t));
   ASSERT_OK(uv_fs_fstat(NULL, &req, file, NULL));
   ASSERT_OK(req.result);
-  s = req.ptr;
+  s = (uv_stat_t*) req.ptr;
 # if defined(__APPLE__)
   ASSERT_EQ(s->st_birthtim.tv_sec, t.st_birthtimespec.tv_sec);
   ASSERT_EQ(s->st_birthtim.tv_nsec, t.st_birthtimespec.tv_nsec);
@@ -1447,7 +1447,7 @@ TEST_IMPL(fs_fstat) {
   r = uv_fs_fstat(NULL, &req, file, NULL);
   ASSERT_OK(r);
   ASSERT_OK(req.result);
-  s = req.ptr;
+  s = (uv_stat_t*) req.ptr;
   ASSERT_EQ(s->st_size, sizeof(test_buf));
 
 #ifndef _WIN32
@@ -1486,7 +1486,7 @@ TEST_IMPL(fs_fstat) {
   ASSERT_EQ(s->st_mtim.tv_nsec, t.st_mtimensec);
   ASSERT_EQ(s->st_ctim.tv_sec, t.st_ctime);
   ASSERT_EQ(s->st_ctim.tv_nsec, t.st_ctimensec);
-#elif defined(__sun)           || \
+#elif !defined(__VMS) && (defined(__sun) || \
       defined(__DragonFly__)   || \
       defined(__FreeBSD__)     || \
       defined(__OpenBSD__)     || \
@@ -1495,7 +1495,7 @@ TEST_IMPL(fs_fstat) {
       defined(_BSD_SOURCE)     || \
       defined(_SVID_SOURCE)    || \
       defined(_XOPEN_SOURCE)   || \
-      defined(_DEFAULT_SOURCE)
+      defined(_DEFAULT_SOURCE))
   ASSERT_EQ(s->st_atim.tv_sec, t.st_atim.tv_sec);
   ASSERT_EQ(s->st_atim.tv_nsec, t.st_atim.tv_nsec);
   ASSERT_EQ(s->st_mtim.tv_sec, t.st_mtim.tv_sec);
@@ -2230,7 +2230,7 @@ TEST_IMPL(fs_symlink) {
 
   r = uv_fs_readlink(NULL, &req, "test_file_symlink_symlink", NULL);
   ASSERT_OK(r);
-  ASSERT_OK(strcmp(req.ptr, "test_file_symlink"));
+  ASSERT_OK(strcmp((const char*) req.ptr, "test_file_symlink"));
   uv_fs_req_cleanup(&req);
 
   r = uv_fs_realpath(NULL, &req, "test_file_symlink_symlink", NULL);
@@ -2238,7 +2238,7 @@ TEST_IMPL(fs_symlink) {
 #ifdef _WIN32
   ASSERT_OK(stricmp(req.ptr, test_file_abs_buf));
 #else
-  ASSERT_OK(strcmp(req.ptr, test_file_abs_buf));
+  ASSERT_OK(strcmp((const char*) req.ptr, test_file_abs_buf));
 #endif
   uv_fs_req_cleanup(&req);
 
@@ -2378,7 +2378,7 @@ int test_symlink_dir_impl(int type) {
 #ifdef _WIN32
   ASSERT_OK(strcmp(req.ptr, test_dir + 4));
 #else
-  ASSERT_OK(strcmp(req.ptr, test_dir));
+  ASSERT_OK(strcmp((const char*) req.ptr, test_dir));
 #endif
   uv_fs_req_cleanup(&req);
 
@@ -2388,7 +2388,7 @@ int test_symlink_dir_impl(int type) {
   ASSERT_EQ(strlen(req.ptr), test_dir_abs_size - 5);
   ASSERT_OK(strnicmp(req.ptr, test_dir + 4, test_dir_abs_size - 5));
 #else
-  ASSERT_OK(strcmp(req.ptr, test_dir_abs_buf));
+  ASSERT_OK(strcmp((const char*) req.ptr, test_dir_abs_buf));
 #endif
   uv_fs_req_cleanup(&req);
 
@@ -3398,7 +3398,7 @@ static void fs_write_alotof_bufs(int add_flags) {
 
   loop = uv_default_loop();
 
-  iovs = malloc(sizeof(*iovs) * iovcount);
+  iovs = (uv_buf_t*) malloc(sizeof(*iovs) * iovcount);
   ASSERT_NOT_NULL(iovs);
   iovmax = uv_test_getiovmax();
 
@@ -3427,7 +3427,7 @@ static void fs_write_alotof_bufs(int add_flags) {
   uv_fs_req_cleanup(&write_req);
 
   /* Read the strings back to separate buffers. */
-  buffer = malloc(sizeof(test_buf) * iovcount);
+  buffer = (char*) malloc(sizeof(test_buf) * iovcount);
   ASSERT_NOT_NULL(buffer);
 
   for (index = 0; index < iovcount; ++index)
@@ -3511,7 +3511,7 @@ static void fs_write_alotof_bufs_with_offset(int add_flags) {
 
   loop = uv_default_loop();
 
-  iovs = malloc(sizeof(*iovs) * iovcount);
+  iovs = (uv_buf_t*) malloc(sizeof(*iovs) * iovcount);
   ASSERT_NOT_NULL(iovs);
   iovmax = uv_test_getiovmax();
 
@@ -3547,7 +3547,7 @@ static void fs_write_alotof_bufs_with_offset(int add_flags) {
   uv_fs_req_cleanup(&write_req);
 
   /* Read the strings back to separate buffers. */
-  buffer = malloc(sizeof(test_buf) * iovcount);
+  buffer = (char*) malloc(sizeof(test_buf) * iovcount);
   ASSERT_NOT_NULL(buffer);
 
   for (index = 0; index < iovcount; ++index)
@@ -3661,14 +3661,14 @@ TEST_IMPL(fs_read_dir) {
   return 0;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__VMS)
 
 TEST_IMPL(fs_partial_read) {
-  RETURN_SKIP("Test not implemented on Windows.");
+  RETURN_SKIP("Test not implemented on Windows or OpenVMS.");
 }
 
 TEST_IMPL(fs_partial_write) {
-  RETURN_SKIP("Test not implemented on Windows.");
+  RETURN_SKIP("Test not implemented on Windows or OpenVMS.");
 }
 
 #else  /* !_WIN32 */
@@ -3743,16 +3743,16 @@ static void test_fs_partial(int doread) {
 
   iovcount = 54321;
 
-  iovs = malloc(sizeof(*iovs) * iovcount);
+  iovs = (uv_buf_t*) malloc(sizeof(*iovs) * iovcount);
   ASSERT_NOT_NULL(iovs);
 
   ctx.pid = pthread_self();
   ctx.doread = doread;
   ctx.interval = 1000;
   ctx.size = sizeof(test_buf) * iovcount;
-  ctx.data = calloc(ctx.size, 1);
+  ctx.data = (char*) calloc(ctx.size, 1);
   ASSERT_NOT_NULL(ctx.data);
-  buffer = calloc(ctx.size, 1);
+  buffer = (char*) calloc(ctx.size, 1);
   ASSERT_NOT_NULL(buffer);
 
   for (index = 0; index < iovcount; ++index)

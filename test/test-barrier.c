@@ -35,7 +35,7 @@ typedef struct {
 
 
 static void worker(void* arg) {
-  worker_config* c = arg;
+  worker_config* c = (worker_config*) arg;
   unsigned i;
 
   if (c->delay)
@@ -116,7 +116,7 @@ static void serial_worker(void* data) {
   uv_barrier_t* barrier;
   unsigned i;
 
-  barrier = data;
+  barrier = (uv_barrier_t*) data;
   for (i = 0; i < 5; i++)
     uv_barrier_wait(barrier);
   if (uv_barrier_wait(barrier) > 0)

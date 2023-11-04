@@ -25,6 +25,9 @@
 #include <limits.h> /* PATH_MAX */
 #include <stdio.h> /* FILE */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * The maximum number of processes (main + helpers) that a test / benchmark
@@ -168,5 +171,9 @@ void process_cleanup(process_info_t *p);
 
 /* Move the console cursor one line up and back to the first column. */
 void rewind_cursor(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* RUNNER_H_ */

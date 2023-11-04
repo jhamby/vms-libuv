@@ -76,7 +76,8 @@
       defined(__MVS__)    || \
       defined(__NetBSD__) || \
       defined(__HAIKU__)  || \
-      defined(__QNX__)
+      defined(__QNX__)    || \
+      defined(__VMS)
 # include <sys/statvfs.h>
 #else
 # include <sys/statfs.h>
@@ -84,15 +85,20 @@
 
 #if defined(__CYGWIN__) ||                                                    \
     (defined(__HAIKU__) && B_HAIKU_VERSION < B_HAIKU_VERSION_1_PRE_BETA_5) || \
-    (defined(__sun) && !defined(__illumos__))
+    (defined(__sun) && !defined(__illumos__)) || defined(__VMS)
 #define preadv(fd, bufs, nbufs, off)                                          \
   pread(fd, (bufs)->iov_base, (bufs)->iov_len, off)
 #define pwritev(fd, bufs, nbufs, off)                                         \
   pwrite(fd, (bufs)->iov_base, (bufs)->iov_len, off)
 #endif
 
+/* VMS may define _XOPEN_SOURCE with no value, giving an "error: invalid
+ * token at start of a preprocessor expression" in clang.
+ */
+#ifndef __VMS
 #if defined(_AIX) && _XOPEN_SOURCE <= 600
 extern char *mkdtemp(char *template); /* See issue #740 on AIX < 7 */
+#endif
 #endif
 
 #define INIT(subtype)                                                         \
@@ -134,7 +140,7 @@ extern char *mkdtemp(char *template); /* See issue #740 on AIX < 7 */
       size_t new_path_len;                                                    \
       path_len = strlen(path) + 1;                                            \
       new_path_len = strlen(new_path) + 1;                                    \
-      req->path = uv__malloc(path_len + new_path_len);                        \
+      req->path = (const char *) uv__malloc(path_len + new_path_len);         \
       if (req->path == NULL)                                                  \
         return UV_ENOMEM;                                                     \
       req->new_path = req->path + path_len;                                   \
@@ -307,7 +313,11 @@ static int uv__fs_mkstemp(uv_fs_t* req) {
   static uv_once_t once = UV_ONCE_INIT;
   int r;
 #ifdef O_CLOEXEC
+#ifdef __VMS
+  static atomic_int no_cloexec_support;
+#else
   static _Atomic int no_cloexec_support;
+#endif
 #endif
   static const char pattern[] = "XXXXXX";
   static const size_t pattern_size = sizeof(pattern) - 1;
@@ -426,7 +436,11 @@ static ssize_t uv__fs_read(uv_fs_t* req) {
     if (nbufs == 1)
       r = read(fd, bufs->iov_base, bufs->iov_len);
     else if (nbufs > 1)
+#if defined(__VMS) && ((defined(__clang__) && (__INITIAL_POINTER_SIZE != 32)) || (__INITIAL_POINTER_SIZE == 64))
+      r = readv(fd, (const __iovec64*) bufs, nbufs);
+#else
       r = readv(fd, bufs, nbufs);
+#endif
   } else {
     if (nbufs == 1)
       r = pread(fd, bufs->iov_base, bufs->iov_len, off);
@@ -496,7 +510,7 @@ static ssize_t uv__fs_scandir(uv_fs_t* req) {
 static int uv__fs_opendir(uv_fs_t* req) {
   uv_dir_t* dir;
 
-  dir = uv__malloc(sizeof(*dir));
+  dir = (uv_dir_t*) uv__malloc(sizeof(*dir));
   if (dir == NULL)
     goto error;
 
@@ -520,7 +534,7 @@ static int uv__fs_readdir(uv_fs_t* req) {
   unsigned int dirent_idx;
   unsigned int i;
 
-  dir = req->ptr;
+  dir = (uv_dir_t*) req->ptr;
   dirent_idx = 0;
 
   while (dirent_idx < dir->nentries) {
@@ -562,7 +576,7 @@ error:
 static int uv__fs_closedir(uv_fs_t* req) {
   uv_dir_t* dir;
 
-  dir = req->ptr;
+  dir = (uv_dir_t*) req->ptr;
 
   if (dir->dir != NULL) {
     closedir(dir->dir);
@@ -580,7 +594,8 @@ static int uv__fs_statfs(uv_fs_t* req) {
     defined(__MVS__)    || \
     defined(__NetBSD__) || \
     defined(__HAIKU__)  || \
-    defined(__QNX__)
+    defined(__QNX__)    || \
+    defined(__VMS)
   struct statvfs buf;
 
   if (0 != statvfs(req->path, &buf))
@@ -591,7 +606,7 @@ static int uv__fs_statfs(uv_fs_t* req) {
 #endif /* defined(__sun) */
     return -1;
 
-  stat_fs = uv__malloc(sizeof(*stat_fs));
+  stat_fs = (uv_statfs_t*) uv__malloc(sizeof(*stat_fs));
   if (stat_fs == NULL) {
     errno = ENOMEM;
     return -1;
@@ -602,7 +617,8 @@ static int uv__fs_statfs(uv_fs_t* req) {
     defined(__OpenBSD__)  || \
     defined(__NetBSD__)   || \
     defined(__HAIKU__)    || \
-    defined(__QNX__)
+    defined(__QNX__)      || \
+    defined(__VMS)
   stat_fs->f_type = 0;  /* f_type is not supported. */
 #else
   stat_fs->f_type = buf.f_type;
@@ -655,7 +671,7 @@ static ssize_t uv__fs_readlink(uv_fs_t* req) {
     maxlen = uv__fs_pathmax_size(req->path);
 #endif
 
-  buf = uv__malloc(maxlen);
+  buf = (char*) uv__malloc(maxlen);
 
   if (buf == NULL) {
     errno = ENOMEM;
@@ -675,7 +691,7 @@ static ssize_t uv__fs_readlink(uv_fs_t* req) {
 
   /* Uncommon case: resize to make room for the trailing nul byte. */
   if (len == maxlen) {
-    buf = uv__reallocf(buf, len + 1);
+    buf = (char*) uv__reallocf(buf, len + 1);
 
     if (buf == NULL)
       return -1;
@@ -698,7 +714,7 @@ static ssize_t uv__fs_realpath(uv_fs_t* req) {
   ssize_t len;
 
   len = uv__fs_pathmax_size(req->path);
-  buf = uv__malloc(len + 1);
+  buf = (char*) uv__malloc(len + 1);
 
   if (buf == NULL) {
     errno = ENOMEM;
@@ -867,7 +883,11 @@ static int uv__is_cifs_or_smb(int fd) {
 
 static ssize_t uv__fs_try_copy_file_range(int in_fd, off_t* off,
                                           int out_fd, size_t len) {
+#ifdef __VMS
+  static atomic_int no_copy_file_range_support;
+#else
   static _Atomic int no_copy_file_range_support;
+#endif
   ssize_t r;
 
   if (atomic_load_explicit(&no_copy_file_range_support, memory_order_relaxed)) {
@@ -1105,7 +1125,11 @@ static ssize_t uv__fs_write(uv_fs_t* req) {
     if (nbufs == 1)
       r = write(fd, bufs->iov_base, bufs->iov_len);
     else if (nbufs > 1)
+#if defined(__VMS) && ((defined(__clang__) && (__INITIAL_POINTER_SIZE != 32)) || (__INITIAL_POINTER_SIZE == 64))
+      r = writev(fd, (const __iovec64*) bufs, nbufs);
+#else
       r = writev(fd, bufs, nbufs);
+#endif
   } else {
     if (nbufs == 1)
       r = pwrite(fd, bufs->iov_base, bufs->iov_len, off);
@@ -1330,7 +1354,8 @@ static void uv__to_stat(struct stat* src, uv_stat_t* dst) {
   dst->st_flags = 0;
   dst->st_gen = 0;
 #elif !defined(_AIX) &&         \
-    !defined(__MVS__) && (      \
+    !defined(__MVS__) &&        \
+    !defined(__VMS) && (        \
     defined(__DragonFly__)   || \
     defined(__FreeBSD__)     || \
     defined(__OpenBSD__)     || \
@@ -1886,7 +1911,7 @@ int uv_fs_read(uv_loop_t* loop, uv_fs_t* req,
 
   req->bufs = req->bufsml;
   if (nbufs > ARRAY_SIZE(req->bufsml))
-    req->bufs = uv__malloc(nbufs * sizeof(*bufs));
+    req->bufs = (uv_buf_t*) uv__malloc(nbufs * sizeof(*bufs));
 
   if (req->bufs == NULL)
     return UV_ENOMEM;
@@ -2071,7 +2096,7 @@ int uv_fs_write(uv_loop_t* loop,
   req->nbufs = nbufs;
   req->bufs = req->bufsml;
   if (nbufs > ARRAY_SIZE(req->bufsml))
-    req->bufs = uv__malloc(nbufs * sizeof(*bufs));
+    req->bufs = (uv_buf_t*) uv__malloc(nbufs * sizeof(*bufs));
 
   if (req->bufs == NULL)
     return UV_ENOMEM;

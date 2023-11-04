@@ -27,6 +27,11 @@
 #include <fcntl.h>
 #include <dirent.h>
 
+#if defined(__VMS)
+#include <time.h>
+#define _XOPEN_SOURCE_EXTENDED /* for new 64-bit iovec */
+#endif
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -66,7 +71,8 @@
       defined(__MSYS__)   || \
       defined(__HAIKU__)  || \
       defined(__QNX__)    || \
-      defined(__GNU__)
+      defined(__GNU__)    || \
+      defined(__VMS)
 # include "uv/posix.h"
 #endif
 

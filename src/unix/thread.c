@@ -540,7 +540,7 @@ static int uv__custom_sem_init(uv_sem_t* sem_, unsigned int value) {
   int err;
   uv_semaphore_t* sem;
 
-  sem = uv__malloc(sizeof(*sem));
+  sem = (uv_semaphore_t*) uv__malloc(sizeof(*sem));
   if (sem == NULL)
     return UV_ENOMEM;
 
@@ -722,9 +722,11 @@ int uv_cond_init(uv_cond_t* cond) {
   if (err)
     return UV__ERR(err);
 
+#ifndef __VMS
   err = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
   if (err)
     goto error2;
+#endif
 
   err = pthread_cond_init(cond, &attr);
   if (err)

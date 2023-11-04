@@ -58,6 +58,10 @@
 # include "os390-syscalls.h"
 #endif /* __MVS__ */
 
+#if defined(__VMS)
+# include "vms-syscalls.h"
+#endif /* __VMS */
+
 #if defined(__sun)
 # include <sys/port.h>
 # include <port.h>
@@ -235,6 +239,10 @@ struct uv__statx {
 #define uv__nonblock uv__nonblock_fcntl
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* core */
 int uv__cloexec(int fd, int set);
 int uv__nonblock_ioctl(int fd, int set);
@@ -387,7 +395,7 @@ UV_UNUSED(static void uv__update_time(uv_loop_t* loop)) {
 UV_UNUSED(static char* uv__basename_r(const char* path)) {
   char* s;
 
-  s = strrchr(path, '/');
+  s = (char*) strrchr(path, '/');
   if (s == NULL)
     return (char*) path;
 
@@ -469,6 +477,10 @@ uv__fs_copy_file_range(int fd_in,
 #define UV__CPU_AFFINITY_SUPPORTED 1
 #else
 #define UV__CPU_AFFINITY_SUPPORTED 0
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* UV_UNIX_INTERNAL_H_ */

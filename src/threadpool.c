@@ -207,7 +207,7 @@ static void init_threads(void) {
 
   threads = default_threads;
   if (nthreads > ARRAY_SIZE(default_threads)) {
-    threads = uv__malloc(nthreads * sizeof(threads[0]));
+    threads = (uv_thread_t*) uv__malloc(nthreads * sizeof(threads[0]));
     if (threads == NULL) {
       nthreads = ARRAY_SIZE(default_threads);
       threads = default_threads;
@@ -244,13 +244,13 @@ static void init_threads(void) {
 #ifndef _WIN32
 static void reset_once(void) {
   uv_once_t child_once = UV_ONCE_INIT;
-  memcpy(&once, &child_once, sizeof(child_once));
+  memcpy((void *) &once, (void *) &child_once, sizeof(child_once));
 }
 #endif
 
 
 static void init_once(void) {
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__VMS)
   /* Re-initialize the threadpool after fork.
    * Note that this discards the global mutex and condition as well
    * as the work queue.

@@ -24,6 +24,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(__VMS) && !defined(SOMAXCONN)
+/* Not defined if _XOPEN_SOURCE_EXTENDED is, which we need for iovec. */
+#define SOMAXCONN       1024
+#endif
+
 
 #ifdef _WIN32
 # define BAD_PIPENAME "bad-pipe"

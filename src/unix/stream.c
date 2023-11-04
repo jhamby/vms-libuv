@@ -35,6 +35,18 @@
 #include <unistd.h>
 #include <limits.h> /* IOV_MAX */
 
+#ifdef __VMS
+/* Fix these for 64-bit C++ pointers. */
+#undef _CMSG_SPACE
+#define _CMSG_SPACE(length) ((ptrdiff_t)_ALIGN(sizeof(struct cmsghdr)) + \
+                                (ptrdiff_t)_ALIGN(length))
+#define CMSG_SPACE(length) _CMSG_SPACE(length)
+#undef _CMSG_LEN
+#define _CMSG_LEN(length) ((ptrdiff_t)_ALIGN(sizeof(struct cmsghdr)) \
+                                + length)
+#define CMSG_LEN(length) _CMSG_LEN(length)
+#endif
+
 #if defined(__APPLE__)
 # include <sys/event.h>
 # include <sys/time.h>
@@ -573,7 +585,7 @@ done:
   if (server->queued_fds != NULL) {
     uv__stream_queued_fds_t* queued_fds;
 
-    queued_fds = server->queued_fds;
+    queued_fds = (uv__stream_queued_fds_t*) server->queued_fds;
 
     /* Read first */
     server->accepted_fd = queued_fds->fds[0];
@@ -663,7 +675,11 @@ static ssize_t uv__writev(int fd, struct iovec* vec, size_t n) {
   if (n == 1)
     return write(fd, vec->iov_base, vec->iov_len);
   else
+#ifdef __VMS
+    return writev(fd, (__iovec64*) vec, n);
+#else
     return writev(fd, vec, n);
+#endif
 }
 
 
@@ -805,7 +821,11 @@ static int uv__try_write(uv_stream_t* stream,
     memcpy(CMSG_DATA(&cmsg.hdr), &fd_to_send, sizeof(fd_to_send));
 
     do
+#ifdef __VMS
+      n = sendmsg(uv__stream_fd(stream), (__msghdr64*) &msg, 0);
+#else
       n = sendmsg(uv__stream_fd(stream), &msg, 0);
+#endif
     while (n == -1 && errno == EINTR);
   } else {
     do
@@ -942,11 +962,11 @@ static int uv__stream_queue_fd(uv_stream_t* stream, int fd) {
   uv__stream_queued_fds_t* queued_fds;
   unsigned int queue_size;
 
-  queued_fds = stream->queued_fds;
+  queued_fds = (uv__stream_queued_fds_t*) stream->queued_fds;
   if (queued_fds == NULL) {
     queue_size = 8;
-    queued_fds = uv__malloc((queue_size - 1) * sizeof(*queued_fds->fds) +
-                            sizeof(*queued_fds));
+    queued_fds = (uv__stream_queued_fds_t*) uv__malloc((queue_size - 1) *
+                            sizeof(*queued_fds->fds) + sizeof(*queued_fds));
     if (queued_fds == NULL)
       return UV_ENOMEM;
     queued_fds->size = queue_size;
@@ -956,7 +976,7 @@ static int uv__stream_queue_fd(uv_stream_t* stream, int fd) {
     /* Grow */
   } else if (queued_fds->size == queued_fds->offset) {
     queue_size = queued_fds->size + 8;
-    queued_fds = uv__realloc(queued_fds,
+    queued_fds = (uv__stream_queued_fds_t*) uv__realloc(queued_fds,
                              (queue_size - 1) * sizeof(*queued_fds->fds) +
                               sizeof(*queued_fds));
 
@@ -1356,7 +1376,7 @@ int uv_write2(uv_write_t* req,
 
   req->bufs = req->bufsml;
   if (nbufs > ARRAY_SIZE(req->bufsml))
-    req->bufs = uv__malloc(nbufs * sizeof(bufs[0]));
+    req->bufs = (uv_buf_t*) uv__malloc(nbufs * sizeof(bufs[0]));
 
   if (req->bufs == NULL)
     return UV_ENOMEM;
@@ -1543,7 +1563,7 @@ void uv__stream_close(uv_stream_t* handle) {
 
   /* Close all queued fds */
   if (handle->queued_fds != NULL) {
-    queued_fds = handle->queued_fds;
+    queued_fds = (uv__stream_queued_fds_t*) handle->queued_fds;
     for (i = 0; i < queued_fds->offset; i++)
       uv__close(queued_fds->fds[i]);
     uv__free(handle->queued_fds);

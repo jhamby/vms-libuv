@@ -54,7 +54,7 @@ static void alloc_cb(uv_handle_t* handle,
     buffer_size *= BUFFER_MULTIPLIER;
 
   /* Actually malloc to exercise free'ing the buffer later */
-  buf->base = malloc(buffer_size);
+  buf->base = (char*) malloc(buffer_size);
   ASSERT_NOT_NULL(buf->base);
   buf->len = buffer_size;
   alloc_cb_called++;

@@ -19,7 +19,7 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__VMS)
 
 #include <stdlib.h>
 #include <unistd.h>

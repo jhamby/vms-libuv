@@ -40,7 +40,7 @@ static int called_timer_cb;
 
 
 static void alloc_cb(uv_handle_t* handle, size_t size, uv_buf_t* buf) {
-  buf->base = malloc(size);
+  buf->base = (char*) malloc(size);
   buf->len = size;
 }
 

@@ -36,7 +36,12 @@
 #include <sys/stat.h>
 #include <assert.h>
 
+#ifdef __VMS
+#include <unixlib.h>
+#include <poll.h>
+#else
 #include <sys/select.h>
+#endif
 #include <sys/time.h>
 #include <pthread.h>
 
@@ -44,7 +49,9 @@
 #include <TargetConditionals.h>
 #endif
 
+#ifndef __VMS
 extern char** environ;
+#endif
 
 static void closefd(int fd) {
   if (close(fd) == 0 || errno == EINTR || errno == EINPROGRESS)
@@ -137,6 +144,8 @@ int process_start(char* name, char* part, process_info_t* p, int is_helper) {
 
 #if defined(__APPLE__) && (TARGET_OS_TV || TARGET_OS_WATCH)
   pid = -1;
+#elif defined(__VMS)
+  pid = vfork();
 #else
   pid = fork();
 #endif
@@ -147,13 +156,21 @@ int process_start(char* name, char* part, process_info_t* p, int is_helper) {
   }
 
   if (pid == 0) {
+#if defined(__VMS)
+//    decc$set_child_standard_streams(-1, stdout_fd, stdout_fd);
+#else
     /* child */
     if (is_helper)
       closefd(pipefd[0]);
     dup2(stdout_fd, STDOUT_FILENO);
     dup2(stdout_fd, STDERR_FILENO);
+#endif
 #if !(defined(__APPLE__) && (TARGET_OS_TV || TARGET_OS_WATCH))
+#if defined(__VMS)
+    execv(args[0], args);
+#else
     execve(args[0], args, environ);
+#endif
 #endif
     perror("execve()");
     _exit(127);
@@ -201,7 +218,7 @@ typedef struct {
  * timeout.
  */
 static void* dowait(void* data) {
-  dowait_args* args = data;
+  dowait_args* args = (dowait_args*) data;
 
   int i, r;
   process_info_t* p;
@@ -308,6 +325,12 @@ int process_wait(process_info_t* vec, int n, int timeout) {
     if (elapsed_ms >= (unsigned) timeout)
       break;
 
+#ifdef __VMS
+    /* VMS's version of select() only works on sockets. */
+    struct pollfd fds = { args.pipe[0], POLLIN | POLLOUT | POLLERR | POLLHUP,
+                          0 };
+    r = poll(&fds, 1, (timeout - elapsed_ms));
+#else
     tv.tv_sec = (timeout - elapsed_ms) / 1000;
     tv.tv_usec = (timeout - elapsed_ms) % 1000 * 1000;
 
@@ -317,6 +340,7 @@ int process_wait(process_info_t* vec, int n, int timeout) {
     r = select(args.pipe[0] + 1, &fds, NULL, NULL, &tv);
     if (!(r == -1 && errno == EINTR))
       break;
+#endif
 
     if (gettimeofday(&tv, NULL))
       abort();

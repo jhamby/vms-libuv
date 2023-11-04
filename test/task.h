@@ -291,7 +291,7 @@ enum test_status {
     return TEST_SKIP;                                                         \
   } while (0)
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__VMS)
 
 # define TEST_FILE_LIMIT(num)                                                 \
     do {                                                                      \

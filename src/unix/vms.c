@@ -1,5 +1,4 @@
 /* Copyright Joyent, Inc. and other Node contributors. All rights reserved.
- *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
  * deal in the Software without restriction, including without limitation the
@@ -20,32 +19,23 @@
  */
 
 #include "uv.h"
-#include "task.h"
+#include "internal.h"
 
-uv_thread_t main_thread_id;
-uv_thread_t subthreads[2];
+#include <assert.h>
+#include <stdint.h>
+#include <errno.h>
+#include <unistd.h>
 
-static void check_thread(void* arg) {
-  uv_thread_t *thread_id = (uv_thread_t*) arg;
-  uv_thread_t self_id = uv_thread_self();
-#ifdef _WIN32
-  ASSERT_NOT_NULL(self_id);
-#endif
-  ASSERT_OK(uv_thread_equal(&main_thread_id, &self_id));
-  *thread_id = uv_thread_self();
-}
+#define __NEW_STARLET 1
 
-TEST_IMPL(thread_equal) {
-  uv_thread_t threads[2];
-  main_thread_id = uv_thread_self();
-#ifdef _WIN32
-  ASSERT_NOT_NULL(main_thread_id);
-#endif
-  ASSERT_NE(0, uv_thread_equal(&main_thread_id, &main_thread_id));
-  ASSERT_OK(uv_thread_create(threads + 0, check_thread, subthreads + 0));
-  ASSERT_OK(uv_thread_create(threads + 1, check_thread, subthreads + 1));
-  ASSERT_OK(uv_thread_join(threads + 0));
-  ASSERT_OK(uv_thread_join(threads + 1));
-  ASSERT_OK(uv_thread_equal(subthreads + 0, subthreads + 1));
-  return 0;
+#include <gen64def.h>
+#include <starlet.h>
+
+/* Difference between UNIX and VMS epochs (to delay wrapping around). */
+#define VMS_EPOCH_OFFSET 35067168005400000ULL
+
+uint64_t uv__hrtime(uv_clocktype_t type) {
+  uint64_t now;
+  (void) sys$gettim_prec(&now);
+  return (now - VMS_EPOCH_OFFSET) * 100;
 }

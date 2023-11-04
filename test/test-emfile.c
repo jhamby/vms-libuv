@@ -39,11 +39,13 @@ static uv_tcp_t client_handle;
 
 TEST_IMPL(emfile) {
   struct sockaddr_in addr;
+#ifndef __VMS
   struct rlimit limits;
+#endif
   uv_connect_t connect_req;
   uv_loop_t* loop;
   int first_fd;
-#if defined(_AIX) || defined(__MVS__)
+#if defined(_AIX) || defined(__MVS__) || defined(__VMS)
   /* On AIX, if a 'accept' call fails ECONNRESET is set on the socket
    * which causes uv__emfile_trick to not work as intended and this test
    * to fail.
@@ -51,12 +53,14 @@ TEST_IMPL(emfile) {
   RETURN_SKIP("uv__emfile_trick does not work on this OS");
 #endif
 
+#ifndef __VMS
   /* Lower the file descriptor limit and use up all fds save one. */
   limits.rlim_cur = limits.rlim_max = maxfd + 1;
   if (setrlimit(RLIMIT_NOFILE, &limits)) {
     ASSERT_EQ(errno, EPERM);  /* Valgrind blocks the setrlimit() call. */
     RETURN_SKIP("setrlimit(RLIMIT_NOFILE) failed, running under valgrind?");
   }
+#endif
 
   loop = uv_default_loop();
   ASSERT_OK(uv_ip4_addr("127.0.0.1", TEST_PORT, &addr));

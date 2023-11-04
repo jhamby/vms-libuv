@@ -24,6 +24,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(__VMS) && !defined(SOMAXCONN)
+/* Not defined if _XOPEN_SOURCE_EXTENDED is, which we need for iovec. */
+#define SOMAXCONN       1024
+#endif
+
 typedef struct {
   uv_write_t req;
   uv_buf_t buf;
@@ -90,7 +95,7 @@ static void after_read(uv_stream_t* handle,
     ASSERT_EQ(nread, UV_EOF);
 
     free(buf->base);
-    sreq = malloc(sizeof* sreq);
+    sreq = (uv_shutdown_t*) malloc(sizeof* sreq);
     if (uv_is_writable(handle)) {
       ASSERT_OK(uv_shutdown(sreq, handle, after_shutdown));
     }
@@ -141,7 +146,7 @@ static void after_read(uv_stream_t* handle,
   }
 
   if (shutdown)
-    ASSERT_OK(uv_shutdown(malloc(sizeof* sreq), handle, on_shutdown));
+    ASSERT_OK(uv_shutdown((uv_shutdown_t*) malloc(sizeof* sreq), handle, on_shutdown));
 }
 
 
@@ -153,7 +158,7 @@ static void on_close(uv_handle_t* peer) {
 static void echo_alloc(uv_handle_t* handle,
                        size_t suggested_size,
                        uv_buf_t* buf) {
-  buf->base = malloc(suggested_size);
+  buf->base = (char*) malloc(suggested_size);
   buf->len = suggested_size;
 }
 
@@ -177,14 +182,14 @@ static void on_connection(uv_stream_t* server, int status) {
 
   switch (serverType) {
   case TCP:
-    stream = malloc(sizeof(uv_tcp_t));
+    stream = (uv_stream_t*) malloc(sizeof(uv_tcp_t));
     ASSERT_NOT_NULL(stream);
     r = uv_tcp_init(loop, (uv_tcp_t*)stream);
     ASSERT_OK(r);
     break;
 
   case PIPE:
-    stream = malloc(sizeof(uv_pipe_t));
+    stream = (uv_stream_t*) malloc(sizeof(uv_pipe_t));
     ASSERT_NOT_NULL(stream);
     r = uv_pipe_init(loop, (uv_pipe_t*)stream, 0);
     ASSERT_OK(r);
@@ -213,9 +218,9 @@ static void on_server_close(uv_handle_t* handle) {
 static uv_udp_send_t* send_alloc(void) {
   uv_udp_send_t* req = send_freelist;
   if (req != NULL)
-    send_freelist = req->data;
+    send_freelist = (uv_udp_send_t*) req->data;
   else
-    req = malloc(sizeof(*req));
+    req = (uv_udp_send_t*) malloc(sizeof(*req));
   return req;
 }
 

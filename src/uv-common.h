@@ -38,13 +38,23 @@
 #include "strscpy.h"
 
 #ifndef _MSC_VER
-# include <stdatomic.h>
+/* Hack for Clang having C++11, but the C RTL not having C11. */
+# ifdef __VMS
+#  include <atomic>
+using namespace std;
+# else
+#  include <stdatomic.h>
+# endif
 #endif
 
 #if EDOM > 0
 # define UV__ERR(x) (-(x))
 #else
 # define UV__ERR(x) (x)
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 #if !defined(snprintf) && defined(_MSC_VER) && _MSC_VER < 1900
@@ -68,6 +78,9 @@ extern int snprintf(char*, size_t, const char*, ...);
 #ifdef _MSC_VER
 #define uv__exchange_int_relaxed(p, v)                                        \
   InterlockedExchangeNoFence((LONG volatile*)(p), v)
+#elif defined(__VMS)
+#define uv__exchange_int_relaxed(p, v)                                        \
+  atomic_exchange_explicit((atomic_int*)(p), v, memory_order_relaxed)
 #else
 #define uv__exchange_int_relaxed(p, v)                                        \
   atomic_exchange_explicit((_Atomic int*)(p), v, memory_order_relaxed)
@@ -429,5 +442,9 @@ struct uv__loop_internal_fields_s {
   void* inv;  /* used by uv__platform_invalidate_fd() */
 #endif  /* __linux__ */
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* UV_COMMON_H_ */

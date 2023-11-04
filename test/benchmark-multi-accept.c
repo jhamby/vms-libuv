@@ -111,9 +111,9 @@ static void ipc_connection_cb(uv_stream_t* ipc_pipe, int status) {
   uv_buf_t buf;
 
   loop = ipc_pipe->loop;
-  buf = uv_buf_init("PING", 4);
+  buf = uv_buf_init((char*) "PING", 4);
   sc = container_of(ipc_pipe, struct ipc_server_ctx, ipc_pipe);
-  pc = calloc(1, sizeof(*pc));
+  pc = (struct ipc_peer_ctx*) calloc(1, sizeof(*pc));
   ASSERT_NOT_NULL(pc);
 
   if (ipc_pipe->type == UV_TCP)
@@ -243,7 +243,7 @@ static void get_listen_handle(uv_loop_t* loop, uv_stream_t* server_handle) {
   struct ipc_client_ctx ctx;
 
   ctx.server_handle = server_handle;
-  ctx.server_handle->data = "server handle";
+  ctx.server_handle->data = (char*) "server handle";
 
   ASSERT_OK(uv_pipe_init(loop, &ctx.ipc_pipe, 1));
   uv_pipe_connect(&ctx.connect_req,
@@ -258,7 +258,7 @@ static void server_cb(void *arg) {
   struct server_ctx *ctx;
   uv_loop_t loop;
 
-  ctx = arg;
+  ctx = (struct server_ctx*) arg;
   ASSERT_OK(uv_loop_init(&loop));
 
   ASSERT_OK(uv_async_init(&loop, &ctx->async_handle, sv_async_cb));
@@ -294,7 +294,7 @@ static void sv_connection_cb(uv_stream_t* server_handle, int status) {
   ctx = container_of(server_handle, struct server_ctx, server_handle);
   ASSERT_OK(status);
 
-  storage = malloc(sizeof(*storage));
+  storage = (handle_storage_t*) malloc(sizeof(*storage));
   ASSERT_NOT_NULL(storage);
 
   if (server_handle->type == UV_TCP)
@@ -370,8 +370,8 @@ static int test_tcp(unsigned int num_servers, unsigned int num_clients) {
   ASSERT_OK(uv_ip4_addr("127.0.0.1", TEST_PORT, &listen_addr));
   loop = uv_default_loop();
 
-  servers = calloc(num_servers, sizeof(servers[0]));
-  clients = calloc(num_clients, sizeof(clients[0]));
+  servers = (struct server_ctx*) calloc(num_servers, sizeof(servers[0]));
+  clients = (struct client_ctx*) calloc(num_clients, sizeof(clients[0]));
   ASSERT_NOT_NULL(servers);
   ASSERT_NOT_NULL(clients);
 
@@ -391,7 +391,7 @@ static int test_tcp(unsigned int num_servers, unsigned int num_clients) {
     struct client_ctx* ctx = clients + i;
     ctx->num_connects = NUM_CONNECTS / num_clients;
     handle = (uv_tcp_t*) &ctx->client_handle;
-    handle->data = "client handle";
+    handle->data = (char*) "client handle";
     ASSERT_OK(uv_tcp_init(loop, handle));
     ASSERT_OK(uv_tcp_connect(&ctx->connect_req,
                              handle,

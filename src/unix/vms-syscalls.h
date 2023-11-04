@@ -1,4 +1,4 @@
-/* Copyright Joyent, Inc. and other Node contributors. All rights reserved.
+/* Copyright libuv project contributors. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -19,33 +19,29 @@
  * IN THE SOFTWARE.
  */
 
+
+#ifndef UV_VMS_SYSCALL_H_
+#define UV_VMS_SYSCALL_H_
+
 #include "uv.h"
-#include "task.h"
+#include "internal.h"
+#include <dirent.h>
+#include <poll.h>
+#include <pthread.h>
 
-uv_thread_t main_thread_id;
-uv_thread_t subthreads[2];
-
-static void check_thread(void* arg) {
-  uv_thread_t *thread_id = (uv_thread_t*) arg;
-  uv_thread_t self_id = uv_thread_self();
-#ifdef _WIN32
-  ASSERT_NOT_NULL(self_id);
+#ifdef __cplusplus
+extern "C" {
 #endif
-  ASSERT_OK(uv_thread_equal(&main_thread_id, &self_id));
-  *thread_id = uv_thread_self();
-}
 
-TEST_IMPL(thread_equal) {
-  uv_thread_t threads[2];
-  main_thread_id = uv_thread_self();
-#ifdef _WIN32
-  ASSERT_NOT_NULL(main_thread_id);
-#endif
-  ASSERT_NE(0, uv_thread_equal(&main_thread_id, &main_thread_id));
-  ASSERT_OK(uv_thread_create(threads + 0, check_thread, subthreads + 0));
-  ASSERT_OK(uv_thread_create(threads + 1, check_thread, subthreads + 1));
-  ASSERT_OK(uv_thread_join(threads + 0));
-  ASSERT_OK(uv_thread_join(threads + 1));
-  ASSERT_OK(uv_thread_equal(subthreads + 0, subthreads + 1));
-  return 0;
+/* utility functions */
+int scandir(const char* maindir, struct dirent*** namelist,
+            int (*filter)(const struct dirent *),
+            int (*compar)(const struct dirent **,
+            const struct dirent **));
+char *mkdtemp(char* path);
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif /* UV_VMS_SYSCALL_H_ */

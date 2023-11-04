@@ -146,7 +146,7 @@ static void sv_recv_cb(uv_udp_t* handle,
   r = uv_udp_recv_stop(handle);
   ASSERT_OK(r);
 
-  req = malloc(sizeof *req);
+  req = (uv_udp_send_t*) malloc(sizeof *req);
   ASSERT_NOT_NULL(req);
 
   sndbuf = uv_buf_init("PONG", 4);

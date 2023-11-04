@@ -89,8 +89,16 @@ struct timer_ctx {
   int signum;
 };
 
+#ifdef __cplusplus
+typedef enum { CLOSE, STOP, NOOP } state_t;
+#endif
+
 struct signal_ctx {
+#ifdef __cplusplus
+  state_t stop_or_close;
+#else
   enum { CLOSE, STOP, NOOP } stop_or_close;
+#endif
   unsigned int ncalls;
   uv_signal_t handle;
   int signum;

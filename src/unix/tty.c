@@ -22,7 +22,12 @@
 #include "uv.h"
 #include "internal.h"
 
+#ifdef __VMS
+#include <atomic>
+using namespace std;
+#else
 #include <stdatomic.h>
+#endif
 #include <stdlib.h>
 #include <assert.h>
 #include <unistd.h>
@@ -64,8 +69,13 @@ static int isreallyatty(int file) {
 
 static int orig_termios_fd = -1;
 static struct termios orig_termios;
+#ifdef __VMS
+static atomic_int termios_spinlock;
+#else
 static _Atomic int termios_spinlock;
+#endif
 
+#ifndef __VMS
 int uv__tcsetattr(int fd, int how, const struct termios *term) {
   int rc;
 
@@ -78,6 +88,7 @@ int uv__tcsetattr(int fd, int how, const struct termios *term) {
 
   return 0;
 }
+#endif
 
 static int uv__tty_is_slave(const int fd) {
   int result;
@@ -125,6 +136,8 @@ static int uv__tty_is_slave(const int fd) {
     abort();
 
   result = (pts == major(sb.st_rdev));
+#elif defined(__VMS)
+  result = 0;   /* TODO: how to implement this? */
 #else
   /* Fallback to ptsname
    */
@@ -244,7 +257,7 @@ skip:
 static void uv__tty_make_raw(struct termios* tio) {
   assert(tio != NULL);
 
-#if defined __sun || defined __MVS__
+#if defined __sun || defined __MVS__ || defined __VMS
   /*
    * This implementation of cfmakeraw for Solaris and derivatives is taken from
    * http://www.perkin.org.uk/posts/solaris-portability-cfmakeraw.html.
@@ -289,12 +302,14 @@ int uv_tty_set_mode(uv_tty_t* tty, uv_tty_mode_t mode) {
 
   fd = uv__stream_fd(tty);
   if (tty->mode == UV_TTY_MODE_NORMAL && mode != UV_TTY_MODE_NORMAL) {
+#ifndef __VMS
     do
       rc = tcgetattr(fd, &tty->orig_termios);
     while (rc == -1 && errno == EINTR);
 
     if (rc == -1)
       return UV__ERR(errno);
+#endif
 
     /* This is used for uv_tty_reset_mode() */
     do
@@ -326,15 +341,17 @@ int uv_tty_set_mode(uv_tty_t* tty, uv_tty_mode_t mode) {
       break;
   }
 
+#ifndef __VMS
   /* Apply changes after draining */
   rc = uv__tcsetattr(fd, TCSADRAIN, &tmp);
   if (rc == 0)
     tty->mode = mode;
+#endif
 
   return rc;
 }
 
-
+#ifndef __VMS
 int uv_tty_get_winsize(uv_tty_t* tty, int* width, int* height) {
   struct winsize ws;
   int err;
@@ -351,6 +368,7 @@ int uv_tty_get_winsize(uv_tty_t* tty, int* width, int* height) {
 
   return 0;
 }
+#endif
 
 
 uv_handle_type uv_guess_handle(uv_file file) {
@@ -455,8 +473,10 @@ int uv_tty_reset_mode(void) {
     return UV_EBUSY;  /* In uv_tty_set_mode(). */
 
   err = 0;
+#ifndef __VMS
   if (orig_termios_fd != -1)
     err = uv__tcsetattr(orig_termios_fd, TCSANOW, &orig_termios);
+#endif
 
   atomic_store(&termios_spinlock, 0);
   errno = saved_errno;

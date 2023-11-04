@@ -113,7 +113,7 @@ static void do_work(void* arg) {
   struct fs_req fs_reqs[4];
   uv_loop_t loop;
   size_t i;
-  struct test_thread* thread = arg;
+  struct test_thread* thread = (struct test_thread*) arg;
 
   ASSERT_OK(uv_loop_init(&loop));
 

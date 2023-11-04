@@ -275,8 +275,8 @@ static void fs_after_work_cb(uv_work_t* req, int status) {
 
 
 static void fs_write_cb(uv_fs_t* req) {
-  uv_work_t* work1 = malloc(sizeof(*work1));
-  uv_work_t* work2 = malloc(sizeof(*work2));
+  uv_work_t* work1 = (uv_work_t*) malloc(sizeof(*work1));
+  uv_work_t* work2 = (uv_work_t*) malloc(sizeof(*work2));
   pool_events_counter++;
 
   uv_fs_req_cleanup(req);

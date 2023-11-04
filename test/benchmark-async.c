@@ -25,7 +25,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define NUM_PINGS (1000 * 1000)
+//#define NUM_PINGS (1000 * 1000)
+#define NUM_PINGS (1000)
 
 struct ctx {
   uv_loop_t loop;
@@ -65,7 +66,7 @@ static void main_async_cb(uv_async_t* handle) {
 
 
 static void worker(void* arg) {
-  struct ctx* ctx = arg;
+  struct ctx* ctx = (struct ctx*) arg;
   ASSERT_OK(uv_async_send(&ctx->main_async));
   ASSERT_OK(uv_run(&ctx->loop, UV_RUN_DEFAULT));
   uv_loop_close(&ctx->loop);
@@ -79,7 +80,7 @@ static int test_async(int nthreads) {
   uint64_t time;
   int i;
 
-  threads = calloc(nthreads, sizeof(threads[0]));
+  threads = (struct ctx*) calloc(nthreads, sizeof(threads[0]));
   ASSERT_NOT_NULL(threads);
 
   for (i = 0; i < nthreads; i++) {

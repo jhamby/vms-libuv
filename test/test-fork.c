@@ -20,7 +20,7 @@
  */
 
 /* These tests are Unix only. */
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__VMS)
 
 #include <unistd.h>
 #include <sys/wait.h>

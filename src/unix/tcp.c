@@ -274,7 +274,7 @@ int uv__tcp_connect(uv_connect_t* req,
     memcpy(&tmp6, addr, sizeof(tmp6));
     if (tmp6.sin6_scope_id == 0) {
       tmp6.sin6_scope_id = uv__ipv6_link_local_scope_id();
-      addr = (void*) &tmp6;
+      addr = (struct sockaddr*) &tmp6;
     }
   }
 

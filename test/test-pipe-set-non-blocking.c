@@ -36,7 +36,7 @@ static void thread_main(void* arg) {
 
   bufs[0] = uv_buf_init(buf, sizeof(buf));
 
-  ctx = arg;
+  ctx = (struct thread_ctx*) arg;
   uv_barrier_wait(&ctx->barrier);
 
   uv_sleep(100); /* make sure we are forcing the writer to block a bit */

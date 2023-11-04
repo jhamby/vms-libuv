@@ -75,7 +75,7 @@ static void connect_cb(uv_connect_t* req, int status) {
 
 static void client_connect(void) {
   struct sockaddr_in addr;
-  uv_connect_t* connect_req = malloc(sizeof *connect_req);
+  uv_connect_t* connect_req = (uv_connect_t*) malloc(sizeof *connect_req);
   int r;
 
   ASSERT_OK(uv_ip4_addr("127.0.0.1", TEST_PORT, &addr));

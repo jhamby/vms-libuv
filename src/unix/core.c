@@ -97,6 +97,20 @@ extern char** environ;
 # include <sanitizer/linux_syscall_hooks.h>
 #endif
 
+#ifdef __VMS
+/* Fix these for 64-bit C++ pointers. */
+#undef _CMSG_SPACE
+#define _CMSG_SPACE(length) ((ptrdiff_t)_ALIGN(sizeof(struct cmsghdr)) + \
+                                (ptrdiff_t)_ALIGN(length))
+#undef _CMSG_LEN
+#define _CMSG_LEN(length) ((ptrdiff_t)_ALIGN(sizeof(struct cmsghdr)) \
+                                + length)
+#define __NEW_STARLET 1
+#include <lib$routines.h>
+#include <stsdef.h>
+#include <syidef.h>
+#endif
+
 static void uv__run_pending(uv_loop_t* loop);
 
 /* Verify that uv_buf_t is ABI-compatible with struct iovec. */
@@ -720,7 +734,11 @@ ssize_t uv__recvmsg(int fd, struct msghdr* msg, int flags) {
   int* pfd;
   int* end;
   ssize_t rc;
+#if defined(__VMS) && __INITIAL_POINTER_SIZE != 32
+  rc = recvmsg(fd, (__msghdr64*) msg, flags);
+#else
   rc = recvmsg(fd, msg, flags);
+#endif
   if (rc == -1)
     return UV__ERR(errno);
   if (msg->msg_controllen == 0)
@@ -874,15 +892,15 @@ static void maybe_resize(uv_loop_t* loop, unsigned int len) {
   }
 
   nwatchers = next_power_of_two(len + 2) - 2;
-  watchers = uv__reallocf(loop->watchers,
+  watchers = (uv__io_t**) uv__reallocf(loop->watchers,
                           (nwatchers + 2) * sizeof(loop->watchers[0]));
 
   if (watchers == NULL)
     abort();
   for (i = loop->nwatchers; i < nwatchers; i++)
     watchers[i] = NULL;
-  watchers[nwatchers] = fake_watcher_list;
-  watchers[nwatchers + 1] = fake_watcher_count;
+  watchers[nwatchers] = (uv__io_t*) fake_watcher_list;
+  watchers[nwatchers + 1] = (uv__io_t*) fake_watcher_count;
 
   loop->watchers = watchers;
   loop->nwatchers = nwatchers;
@@ -1163,11 +1181,15 @@ int uv_os_tmpdir(char* buffer, size_t* size) {
   }                                                                           \
   while (0)
 
+#ifdef __VMS
+  CHECK_ENV_VAR("SYS$SCRATCH");
+#else
   /* Check the TMPDIR, TMP, TEMP, and TEMPDIR environment variables in order */
   CHECK_ENV_VAR("TMPDIR");
   CHECK_ENV_VAR("TMP");
   CHECK_ENV_VAR("TEMP");
   CHECK_ENV_VAR("TEMPDIR");
+#endif
 
 #undef CHECK_ENV_VAR
 
@@ -1216,7 +1238,7 @@ static int uv__getpwuid_r(uv_passwd_t *pwd, uid_t uid) {
    * is frequently 1024 or 4096, so we can just use that directly. The pwent
    * will not usually be large. */
   for (bufsize = 2000;; bufsize *= 2) {
-    buf = uv__malloc(bufsize);
+    buf = (char*) uv__malloc(bufsize);
 
     if (buf == NULL)
       return UV_ENOMEM;
@@ -1242,7 +1264,7 @@ static int uv__getpwuid_r(uv_passwd_t *pwd, uid_t uid) {
   name_size = strlen(pw.pw_name) + 1;
   homedir_size = strlen(pw.pw_dir) + 1;
   shell_size = strlen(pw.pw_shell) + 1;
-  pwd->username = uv__malloc(name_size + homedir_size + shell_size);
+  pwd->username = (char*) uv__malloc(name_size + homedir_size + shell_size);
 
   if (pwd->username == NULL) {
     uv__free(buf);
@@ -1292,7 +1314,7 @@ int uv_os_get_group(uv_group_t* grp, uv_uid_t gid) {
    * is frequently 1024 or 4096, so we can just use that directly. The pwent
    * will not usually be large. */
   for (bufsize = 2000;; bufsize *= 2) {
-    buf = uv__malloc(bufsize);
+    buf = (char*) uv__malloc(bufsize);
 
     if (buf == NULL)
       return UV_ENOMEM;
@@ -1323,7 +1345,7 @@ int uv_os_get_group(uv_group_t* grp, uv_uid_t gid) {
     members++;
   }
 
-  gr_mem = uv__malloc(name_size + mem_size);
+  gr_mem = (char*) uv__malloc(name_size + mem_size);
   if (gr_mem == NULL) {
     uv__free(buf);
     return UV_ENOMEM;
@@ -1380,7 +1402,7 @@ int uv_os_environ(uv_env_item_t** envitems, int* count) {
 
   for (i = 0; environ[i] != NULL; i++);
 
-  *envitems = uv__calloc(i, sizeof(**envitems));
+  *envitems = (uv_env_item_t*) uv__calloc(i, sizeof(**envitems));
 
   if (*envitems == NULL)
     return UV_ENOMEM;
@@ -1530,6 +1552,7 @@ int uv_cpumask_size(void) {
 #endif
 }
 
+#ifndef __VMS
 int uv_os_getpriority(uv_pid_t pid, int* priority) {
   int r;
 
@@ -1556,6 +1579,7 @@ int uv_os_setpriority(uv_pid_t pid, int priority) {
 
   return 0;
 }
+#endif /* !__VMS */
 
 
 int uv_os_uname(uv_utsname_t* buffer) {
@@ -1768,6 +1792,13 @@ unsigned int uv_available_parallelism(void) {
     rc = 1;
 
   return (unsigned) rc;
+#elif defined(__VMS)
+  int item = SYI$_ACTIVECPU_CNT;
+  unsigned int rc;
+  if (!$VMS_STATUS_SUCCESS(lib$getsyi(&item, &rc)))
+    rc = 1;
+
+  return rc;
 #else  /* __linux__ */
   long rc;
 

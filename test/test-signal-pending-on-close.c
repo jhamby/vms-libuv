@@ -75,7 +75,7 @@ TEST_IMPL(signal_pending_on_close) {
   ASSERT_OK(uv_pipe_open(&pipe_hdl, pipefds[1]));
 
   /* Write data large enough so it needs loop iteration */
-  buf = malloc(1<<24);
+  buf = (char*) malloc(1<<24);
   ASSERT_NOT_NULL(buf);
   memset(buf, '.', 1<<24);
   buffer = uv_buf_init(buf, 1<<24);

@@ -245,11 +245,15 @@ static void uv__udp_recvmsg(uv_udp_t* handle) {
     memset(&peer, 0, sizeof(peer));
     h.msg_name = &peer;
     h.msg_namelen = sizeof(peer);
-    h.msg_iov = (void*) &buf;
+    h.msg_iov = (struct iovec*) &buf;
     h.msg_iovlen = 1;
 
     do {
+#if defined(__VMS) && ((defined(__clang__) && (__INITIAL_POINTER_SIZE != 32)) || (__INITIAL_POINTER_SIZE == 64))
+      nread = recvmsg(handle->io_watcher.fd, (__msghdr64*) &h, 0);
+#else
       nread = recvmsg(handle->io_watcher.fd, &h, 0);
+#endif
     }
     while (nread == -1 && errno == EINTR);
 
@@ -399,7 +403,11 @@ write_queue_drain:
     h.msg_iovlen = req->nbufs;
 
     do {
+#if defined(__VMS) && ((defined(__clang__) && (__INITIAL_POINTER_SIZE != 32)) || (__INITIAL_POINTER_SIZE == 64))
+      size = sendmsg(handle->io_watcher.fd, (__msghdr64*) &h, 0);
+#else
       size = sendmsg(handle->io_watcher.fd, &h, 0);
+#endif
     } while (size == -1 && errno == EINTR);
 
     if (size == -1) {
@@ -574,7 +582,12 @@ static int uv__udp_maybe_deferred_bind(uv_udp_t* handle,
     struct sockaddr_in6* addr = &taddr.in6;
     memset(addr, 0, sizeof *addr);
     addr->sin6_family = AF_INET6;
+#ifdef __VMS
+    /* OpenVMS V9.2-1 is missing in6addr_any in the C RTL */
+    memset(&addr->sin6_addr, 0, sizeof(struct in6_addr));
+#else
     addr->sin6_addr = in6addr_any;
+#endif
     addrlen = sizeof *addr;
     break;
   }
@@ -719,7 +732,7 @@ int uv__udp_send(uv_udp_send_t* req,
 
   req->bufs = req->bufsml;
   if (nbufs > ARRAY_SIZE(req->bufsml))
-    req->bufs = uv__malloc(nbufs * sizeof(bufs[0]));
+    req->bufs = (uv_buf_t*) uv__malloc(nbufs * sizeof(bufs[0]));
 
   if (req->bufs == NULL) {
     uv__req_unregister(handle->loop, req);
@@ -779,7 +792,11 @@ int uv__udp_try_send(uv_udp_t* handle,
   h.msg_iovlen = nbufs;
 
   do {
+#if defined(__VMS) && ((defined(__clang__) && (__INITIAL_POINTER_SIZE != 32)) || (__INITIAL_POINTER_SIZE == 64))
+    size = sendmsg(handle->io_watcher.fd, (__msghdr64*) &h, 0);
+#else
     size = sendmsg(handle->io_watcher.fd, &h, 0);
+#endif
   } while (size == -1 && errno == EINTR);
 
   if (size == -1) {
@@ -892,7 +909,8 @@ static int uv__udp_set_membership6(uv_udp_t* handle,
     !defined(__ANDROID__) &&                                        \
     !defined(__DragonFly__) &&                                      \
     !defined(__QNX__) &&                                            \
-    !defined(__GNU__)
+    !defined(__GNU__) &&                                            \
+    !defined(__VMS)
 static int uv__udp_set_source_membership4(uv_udp_t* handle,
                                           const struct sockaddr_in* multicast_addr,
                                           const char* interface_addr,
@@ -1083,7 +1101,8 @@ int uv_udp_set_source_membership(uv_udp_t* handle,
     !defined(__ANDROID__) &&                                        \
     !defined(__DragonFly__) &&                                      \
     !defined(__QNX__) &&                                            \
-    !defined(__GNU__)
+    !defined(__GNU__) &&                                            \
+    !defined(__VMS)
   int err;
   union uv__sockaddr mcast_addr;
   union uv__sockaddr src_addr;

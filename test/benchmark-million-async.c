@@ -86,7 +86,7 @@ BENCHMARK_IMPL(million_async) {
   loop = uv_default_loop();
   timeout = 5000;
 
-  container = malloc(sizeof(*container));
+  container = (struct async_container*) malloc(sizeof(*container));
   ASSERT_NOT_NULL(container);
   container->async_events = 0;
   container->handles_seen = 0;

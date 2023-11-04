@@ -71,7 +71,7 @@ static void on_connection(uv_stream_t* server, int status) {
     ASSERT_OK(status);
     ASSERT_PTR_EQ(&tcp_server, server);
 
-    conn = malloc(sizeof(*conn));
+    conn = (uv_tcp_t*) malloc(sizeof(*conn));
     ASSERT_NOT_NULL(conn);
     r = uv_tcp_init(server->loop, conn);
     ASSERT_OK(r);
@@ -100,7 +100,7 @@ static void exit_cb(uv_process_t* process,
 static void on_alloc(uv_handle_t* handle,
                      size_t suggested_size,
                      uv_buf_t* buf) {
-  buf->base = malloc(suggested_size);
+  buf->base = (char*) malloc(suggested_size);
   buf->len = suggested_size;
 }
 
@@ -122,7 +122,7 @@ static void make_many_connections(void) {
   int r, i;
 
   for (i = 0; i < CONN_COUNT; i++) {
-    conn = malloc(sizeof(*conn));
+    conn = (tcp_conn*) malloc(sizeof(*conn));
     ASSERT_NOT_NULL(conn);
 
     r = uv_tcp_init(uv_default_loop(), &conn->conn);
@@ -307,7 +307,7 @@ void spawn_helper(uv_pipe_t* channel,
   options.stdio = stdio;
   options.stdio_count = ARRAY_SIZE(stdio);
 
-  stdio[0].flags = UV_CREATE_PIPE | UV_READABLE_PIPE | UV_WRITABLE_PIPE;
+  stdio[0].flags = (uv_stdio_flags) (UV_CREATE_PIPE | UV_READABLE_PIPE | UV_WRITABLE_PIPE);
   stdio[0].data.stream = (uv_stream_t*) channel;
   stdio[1].flags = UV_INHERIT_FD;
   stdio[1].data.fd = 1;
@@ -329,7 +329,7 @@ static void on_tcp_write(uv_write_t* req, int status) {
 static void on_read_alloc(uv_handle_t* handle,
                           size_t suggested_size,
                           uv_buf_t* buf) {
-  buf->base = malloc(suggested_size);
+  buf->base = (char*) malloc(suggested_size);
   buf->len = suggested_size;
 }
 
@@ -649,7 +649,7 @@ static void ipc_on_connection_tcp_conn(uv_stream_t* server, int status) {
   ASSERT_OK(status);
   ASSERT_PTR_EQ(&tcp_server, server);
 
-  conn = malloc(sizeof(*conn));
+  conn = (uv_tcp_t*) malloc(sizeof(*conn));
   ASSERT_NOT_NULL(conn);
 
   r = uv_tcp_init(server->loop, conn);

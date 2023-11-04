@@ -48,7 +48,7 @@ BENCHMARK_IMPL(million_timers) {
   int timeout;
   int i;
 
-  timers = malloc(NUM_TIMERS * sizeof(timers[0]));
+  timers = (uv_timer_t*) malloc(NUM_TIMERS * sizeof(timers[0]));
   ASSERT_NOT_NULL(timers);
 
   loop = uv_default_loop();

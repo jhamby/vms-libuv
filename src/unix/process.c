@@ -51,6 +51,8 @@
 #  define POSIX_SPAWN_SETSID 1024
 # endif
 
+#elif defined(__VMS)
+#include <unixlib.h>
 #else
 extern char **environ;
 #endif
@@ -274,6 +276,7 @@ static void uv__write_errno(int error_fd) {
 }
 
 
+#ifndef __VMS
 static void uv__process_child_init(const uv_process_options_t* options,
                                    int stdio_count,
                                    int (*pipes)[2],
@@ -405,6 +408,7 @@ static void uv__process_child_init(const uv_process_options_t* options,
 
   uv__write_errno(error_fd);
 }
+#endif
 
 
 #if defined(__APPLE__)
@@ -806,6 +810,7 @@ error:
 }
 #endif
 
+#ifndef __VMS
 static int uv__spawn_and_init_child_fork(const uv_process_options_t* options,
                                          int stdio_count,
                                          int (*pipes)[2],
@@ -952,11 +957,12 @@ static int uv__spawn_and_init_child(
   return err;
 }
 #endif /* ISN'T TARGET_OS_TV || TARGET_OS_WATCH */
+#endif /* VMS */
 
 int uv_spawn(uv_loop_t* loop,
              uv_process_t* process,
              const uv_process_options_t* options) {
-#if defined(__APPLE__) && (TARGET_OS_TV || TARGET_OS_WATCH)
+#if (defined(__APPLE__) && (TARGET_OS_TV || TARGET_OS_WATCH)) || defined(__VMS)
   /* fork is marked __WATCHOS_PROHIBITED __TVOS_PROHIBITED. */
   return UV_ENOSYS;
 #else
@@ -988,7 +994,7 @@ int uv_spawn(uv_loop_t* loop,
   err = UV_ENOMEM;
   pipes = pipes_storage;
   if (stdio_count > (int) ARRAY_SIZE(pipes_storage))
-    pipes = uv__malloc(stdio_count * sizeof(*pipes));
+    pipes = (int (*)[2]) uv__malloc(stdio_count * sizeof(*pipes));
 
   if (pipes == NULL)
     goto error;

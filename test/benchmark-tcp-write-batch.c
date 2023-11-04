@@ -102,12 +102,12 @@ BENCHMARK_IMPL(tcp_write_batch) {
   int i;
   int r;
 
-  write_reqs = malloc(sizeof(*write_reqs) * NUM_WRITE_REQS);
+  write_reqs = (write_req*) malloc(sizeof(*write_reqs) * NUM_WRITE_REQS);
   ASSERT_NOT_NULL(write_reqs);
 
   /* Prepare the data to write out. */
   for (i = 0; i < NUM_WRITE_REQS; i++) {
-    write_reqs[i].buf = uv_buf_init(WRITE_REQ_DATA,
+    write_reqs[i].buf = uv_buf_init((char*) WRITE_REQ_DATA,
                                     sizeof(WRITE_REQ_DATA) - 1);
   }
 

@@ -33,6 +33,17 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#ifdef __VMS
+/* Fix these for 64-bit C++ pointers. */
+#undef _CMSG_SPACE
+#define _CMSG_SPACE(length) ((ptrdiff_t)_ALIGN(sizeof(struct cmsghdr)) + \
+                                (ptrdiff_t)_ALIGN(length))
+#define CMSG_SPACE(length) _CMSG_SPACE(length)
+#undef _CMSG_LEN
+#define _CMSG_LEN(length) ((ptrdiff_t)_ALIGN(sizeof(struct cmsghdr)) \
+                                + length)
+#define CMSG_LEN(length) _CMSG_LEN(length)
+#endif
 
 /* NOTE: size should be divisible by 2 */
 static uv_pipe_t incoming[4];
@@ -140,7 +151,7 @@ TEST_IMPL(pipe_sendmsg) {
   /* silence aliasing warning */
   {
     void* pv = CMSG_DATA(cmsg);
-    int* pi = pv;
+    int* pi = (int*) pv;
     for (i = 0; i < ARRAY_SIZE(send_fds); i++)
       pi[i] = send_fds[i];
   }
@@ -149,7 +160,11 @@ TEST_IMPL(pipe_sendmsg) {
   ASSERT_OK(uv_read_start((uv_stream_t*) &p, alloc_cb, read_cb));
 
   do
+#if defined(__VMS) && ((defined(__clang__) && (__INITIAL_POINTER_SIZE != 32)) || (__INITIAL_POINTER_SIZE == 64))
+    r = sendmsg(fds[0], (const __msghdr64*) &msg, 0);
+#else
     r = sendmsg(fds[0], &msg, 0);
+#endif
   while (r == -1 && errno == EINTR);
   ASSERT_EQ(1, r);
 

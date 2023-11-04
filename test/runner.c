@@ -31,8 +31,8 @@ char executable_path[sizeof(executable_path)];
 
 
 static int compare_task(const void* va, const void* vb) {
-  const task_entry_t* a = va;
-  const task_entry_t* b = vb;
+  const task_entry_t* a = (const task_entry_t*) va;
+  const task_entry_t* b = (const task_entry_t*) vb;
   return strcmp(a->task_name, b->task_name);
 }
 
@@ -417,7 +417,7 @@ void print_lines(const char* buffer, size_t size, FILE* stream) {
   const char* end;
 
   start = buffer;
-  while ((end = memchr(start, '\n', &buffer[size] - start))) {
+  while ((end = (const char*) memchr(start, '\n', &buffer[size] - start))) {
     fputs("# ", stream);
     fwrite(start, 1, (int)(end - start), stream);
     fputs("\n", stream);

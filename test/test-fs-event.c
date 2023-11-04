@@ -379,7 +379,7 @@ static void timer_cb_exact(uv_timer_t* handle) {
 }
 
 static void timer_cb_watch_twice(uv_timer_t* handle) {
-  uv_fs_event_t* handles = handle->data;
+  uv_fs_event_t* handles = (uv_fs_event_t*) handle->data;
   uv_close((uv_handle_t*) (handles + 0), NULL);
   uv_close((uv_handle_t*) (handles + 1), NULL);
   uv_close((uv_handle_t*) handle, NULL);
@@ -710,7 +710,7 @@ TEST_IMPL(fs_event_watch_file_current_dir) {
   r = uv_timer_init(loop, &timer);
   ASSERT_OK(r);
 
-  timer.data = "watch_file";
+  timer.data = (char*) "watch_file";
   r = uv_timer_start(&timer, timer_cb_touch, 1100, 0);
   ASSERT_OK(r);
 

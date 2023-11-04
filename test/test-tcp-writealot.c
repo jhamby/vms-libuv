@@ -51,7 +51,7 @@ static uv_write_t write_reqs[WRITES];
 
 
 static void alloc_cb(uv_handle_t* handle, size_t size, uv_buf_t* buf) {
-  buf->base = malloc(size);
+  buf->base = (char*) malloc(size);
   buf->len = size;
 }
 
@@ -155,7 +155,7 @@ TEST_IMPL(tcp_writealot) {
 
   ASSERT_OK(uv_ip4_addr("127.0.0.1", TEST_PORT, &addr));
 
-  send_buffer = calloc(1, TOTAL_BYTES);
+  send_buffer = (char*) calloc(1, TOTAL_BYTES);
   ASSERT_NOT_NULL(send_buffer);
 
   r = uv_tcp_init(uv_default_loop(), &client);

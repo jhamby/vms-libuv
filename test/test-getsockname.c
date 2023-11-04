@@ -44,7 +44,7 @@ static uv_udp_send_t send_req;
 
 
 static void alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
-  buf->base = malloc(suggested_size);
+  buf->base = (char*) malloc(suggested_size);
   buf->len = suggested_size;
 }
 
@@ -116,7 +116,7 @@ static void on_connection(uv_stream_t* server, int status) {
   }
   ASSERT_OK(status);
 
-  handle = malloc(sizeof(*handle));
+  handle = (uv_tcp_t*) malloc(sizeof(*handle));
   ASSERT_NOT_NULL(handle);
 
   r = uv_tcp_init(loop, handle);

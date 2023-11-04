@@ -53,7 +53,11 @@ extern "C" {
 #endif
 #endif /* UV_EXTERN */
 
+#ifdef __VMS
+#include "uv-errno.h"
+#else
 #include "uv/errno.h"
+#endif
 #include "uv/version.h"
 #include <stddef.h>
 #include <stdio.h>

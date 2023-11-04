@@ -43,7 +43,7 @@ static void getter_thread_body(void* arg) {
   char buffer[512];
   size_t len;
 
-  getter_sem = arg;
+  getter_sem = (uv_sem_t*) arg;
 
   while (UV_EAGAIN == uv_sem_trywait(getter_sem)) {
     ASSERT_OK(uv_get_process_title(buffer, sizeof(buffer)));

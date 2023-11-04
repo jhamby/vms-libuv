@@ -34,7 +34,7 @@ TEST_IMPL(handle_type_name) {
   ASSERT_OK(strcmp(uv_handle_type_name(UV_UDP), "udp"));
   ASSERT_OK(strcmp(uv_handle_type_name(UV_FILE), "file"));
   ASSERT_NULL(uv_handle_type_name(UV_HANDLE_TYPE_MAX));
-  ASSERT_NULL(uv_handle_type_name(UV_HANDLE_TYPE_MAX + 1));
+  ASSERT_NULL(uv_handle_type_name((uv_handle_type) (UV_HANDLE_TYPE_MAX + 1)));
   ASSERT_NULL(uv_handle_type_name(UV_UNKNOWN_HANDLE));
   return 0;
 }
@@ -45,7 +45,7 @@ TEST_IMPL(req_type_name) {
   ASSERT_OK(strcmp(uv_req_type_name(UV_UDP_SEND), "udp_send"));
   ASSERT_OK(strcmp(uv_req_type_name(UV_WORK), "work"));
   ASSERT_NULL(uv_req_type_name(UV_REQ_TYPE_MAX));
-  ASSERT_NULL(uv_req_type_name(UV_REQ_TYPE_MAX + 1));
+  ASSERT_NULL(uv_req_type_name((uv_req_type) (UV_REQ_TYPE_MAX + 1)));
   ASSERT_NULL(uv_req_type_name(UV_UNKNOWN_REQ));
   return 0;
 }
@@ -57,7 +57,7 @@ TEST_IMPL(getters_setters) {
   uv_fs_t* fs;
   int r;
 
-  loop = malloc(uv_loop_size());
+  loop = (uv_loop_t*) malloc(uv_loop_size());
   ASSERT_NOT_NULL(loop);
   r = uv_loop_init(loop);
   ASSERT_OK(r);
@@ -66,7 +66,7 @@ TEST_IMPL(getters_setters) {
   ASSERT_PTR_EQ(loop->data, &cookie1);
   ASSERT_PTR_EQ(uv_loop_get_data(loop), &cookie1);
 
-  pipe = malloc(uv_handle_size(UV_NAMED_PIPE));
+  pipe = (uv_pipe_t*) malloc(uv_handle_size(UV_NAMED_PIPE));
   r = uv_pipe_init(loop, pipe, 0);
   ASSERT_OK(r);
   ASSERT_EQ(uv_handle_get_type((uv_handle_t*)pipe), UV_NAMED_PIPE);
@@ -87,7 +87,7 @@ TEST_IMPL(getters_setters) {
   r = uv_run(loop, UV_RUN_DEFAULT);
   ASSERT_OK(r);
 
-  fs = malloc(uv_req_size(UV_FS));
+  fs = (uv_fs_t*) malloc(uv_req_size(UV_FS));
   uv_fs_stat(loop, fs, ".", NULL);
 
   r = uv_run(loop, UV_RUN_DEFAULT);

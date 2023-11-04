@@ -171,7 +171,7 @@ static void loop_creating_worker(void* context) {
     uv_signal_t signal;
     int r;
 
-    loop = malloc(sizeof(*loop));
+    loop = (uv_loop_t*) malloc(sizeof(*loop));
     ASSERT_NOT_NULL(loop);
     ASSERT_OK(uv_loop_init(loop));
 
@@ -269,12 +269,14 @@ TEST_IMPL(signal_multiple_loops) {
   for (i = 0; i < NUM_SIGNAL_HANDLING_THREADS; i++)
     uv_sem_wait(&sem);
 
+#ifndef __VMS
   /* Block all signals to this thread, so we are sure that from here the signal
    * handler runs in another thread. This is more likely to catch thread and
    * signal safety issues if there are any.
    */
   sigfillset(&sigset);
   pthread_sigmask(SIG_SETMASK, &sigset, NULL);
+#endif
 
   r = kill(getpid(), SIGUSR1);
   ASSERT_OK(r);

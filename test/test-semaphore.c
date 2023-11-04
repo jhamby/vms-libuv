@@ -34,7 +34,7 @@ typedef struct {
 
 
 static void worker(void* arg) {
-  worker_config* c = arg;
+  worker_config* c = (worker_config*) arg;
 
   if (c->delay)
     uv_sleep(c->delay);

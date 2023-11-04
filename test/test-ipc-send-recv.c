@@ -25,6 +25,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#if defined(__VMS) && !defined(SOMAXCONN)
+/* Not defined if _XOPEN_SOURCE_EXTENDED is, which we need for iovec. */
+#define SOMAXCONN       1024
+#endif
+
 /* See test-ipc.c */
 void spawn_helper(uv_pipe_t* channel,
                   uv_process_t* process,
@@ -80,7 +85,7 @@ static void alloc_cb(uv_handle_t* handle,
    * but it needs to be heap-allocated to appease TSan.
    */
   buf->len = 8;
-  buf->base = malloc(buf->len);
+  buf->base = (char*) malloc(buf->len);
   ASSERT_NOT_NULL(buf->base);
 }
 

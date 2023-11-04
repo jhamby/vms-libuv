@@ -30,6 +30,11 @@
 #include <unistd.h>
 #include <string.h>
 
+/* Required for OpenVMS with _XOPEN_SOURCE_EXTENDED defined */
+#ifndef PF_INET
+#define PF_INET AF_INET
+#endif
+
 static uv_tcp_t server_handle;
 static uv_tcp_t client_handle;
 static uv_tcp_t peer_handle;

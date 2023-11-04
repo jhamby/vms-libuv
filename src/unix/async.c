@@ -26,7 +26,12 @@
 #include "internal.h"
 
 #include <errno.h>
+#ifdef __VMS
+#include <atomic>
+using namespace std;
+#else
 #include <stdatomic.h>
+#endif
 #include <stdio.h>  /* snprintf() */
 #include <assert.h>
 #include <stdlib.h>
@@ -63,11 +68,19 @@ int uv_async_init(uv_loop_t* loop, uv_async_t* handle, uv_async_cb async_cb) {
 
 
 int uv_async_send(uv_async_t* handle) {
+#ifdef __VMS
+  atomic_int* pending;
+  atomic_int* busy;
+
+  pending = (atomic_int*) &handle->pending;
+  busy = (atomic_int*) &handle->u.fd;
+#else
   _Atomic int* pending;
   _Atomic int* busy;
 
   pending = (_Atomic int*) &handle->pending;
   busy = (_Atomic int*) &handle->u.fd;
+#endif
 
   /* Do a cheap read first. */
   if (atomic_load_explicit(pending, memory_order_relaxed) != 0)
@@ -90,12 +103,21 @@ int uv_async_send(uv_async_t* handle) {
 /* Wait for the busy flag to clear before closing.
  * Only call this from the event loop thread. */
 static void uv__async_spin(uv_async_t* handle) {
+#ifdef __VMS
+  atomic_int* pending;
+  atomic_int* busy;
+  int i;
+
+  pending = (atomic_int*) &handle->pending;
+  busy = (atomic_int*) &handle->u.fd;
+#else
   _Atomic int* pending;
   _Atomic int* busy;
   int i;
 
   pending = (_Atomic int*) &handle->pending;
   busy = (_Atomic int*) &handle->u.fd;
+#endif
 
   /* Set the pending flag first, so no new events will be added by other
    * threads after this function returns. */
@@ -113,11 +135,16 @@ static void uv__async_spin(uv_async_t* handle) {
       uv__cpu_relax();
     }
 
+/* We can't yield the CPU on OpenVMS or other threads won't wake up.
+ * This will be replaced with a local event flag instead of write()/poll().
+ */
+#ifndef __VMS
     /* Yield the CPU. We may have preempted the other thread while it's
      * inside the critical section and if it's running on the same CPU
      * as us, we'll just burn CPU cycles until the end of our time slice.
      */
     sched_yield();
+#endif
   }
 }
 
@@ -135,7 +162,11 @@ static void uv__async_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
   struct uv__queue queue;
   struct uv__queue* q;
   uv_async_t* h;
+#ifdef __VMS
+  atomic_int *pending;
+#else
   _Atomic int *pending;
+#endif
 
   assert(w == &loop->async_io_watcher);
 
@@ -166,7 +197,11 @@ static void uv__async_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
     uv__queue_insert_tail(&loop->async_handles, q);
 
     /* Atomically fetch and clear pending flag */
+#ifdef __VMS
+    pending = (atomic_int*) &h->pending;
+#else
     pending = (_Atomic int*) &h->pending;
+#endif
     if (atomic_exchange(pending, 0) == 0)
       continue;
 

@@ -63,6 +63,7 @@ RB_GENERATE_STATIC(uv__signal_tree_s,
 static void uv__signal_global_reinit(void);
 
 static void uv__signal_global_init(void) {
+#ifndef __VMS
   if (uv__signal_lock_pipefd[0] == -1)
     /* pthread_atfork can register before and after handlers, one
      * for each child. This only registers one for the child. That
@@ -72,6 +73,7 @@ static void uv__signal_global_init(void) {
      */
     if (pthread_atfork(NULL, NULL, &uv__signal_global_reinit))
       abort();
+#endif
 
   uv__signal_global_reinit();
 }
@@ -143,10 +145,12 @@ static void uv__signal_block_and_lock(sigset_t* saved_sigmask) {
   if (sigfillset(&new_mask))
     abort();
 
+#ifndef __VMS
   /* to shut up valgrind */
   sigemptyset(saved_sigmask);
   if (pthread_sigmask(SIG_SETMASK, &new_mask, saved_sigmask))
     abort();
+#endif
 
   if (uv__signal_lock())
     abort();
@@ -157,8 +161,10 @@ static void uv__signal_unlock_and_unblock(sigset_t* saved_sigmask) {
   if (uv__signal_unlock())
     abort();
 
+#ifndef __VMS
   if (pthread_sigmask(SIG_SETMASK, saved_sigmask, NULL))
     abort();
+#endif
 }
 
 
