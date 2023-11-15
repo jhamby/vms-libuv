@@ -27,7 +27,7 @@
 
 #include <ifaddrs.h>
 #include <net/if.h>
-#if !defined(__CYGWIN__) && !defined(__MSYS__) && !defined(__GNU__)
+#if !defined(__CYGWIN__) && !defined(__MSYS__) && !defined(__GNU__) && !defined(__VMS)
 #include <net/if_dl.h>
 #endif
 
@@ -92,7 +92,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
   }
 
   /* Make sure the memory is initiallized to zero using calloc() */
-  *addresses = uv__calloc(*count, sizeof(**addresses));
+  *addresses = (uv_interface_address_t*) uv__calloc(*count, sizeof(**addresses));
 
   if (*addresses == NULL) {
     freeifaddrs(addrs);
@@ -126,7 +126,7 @@ int uv_interface_addresses(uv_interface_address_t** addresses, int* count) {
     address++;
   }
 
-#if !(defined(__CYGWIN__) || defined(__MSYS__)) && !defined(__GNU__)
+#if !(defined(__CYGWIN__) || defined(__MSYS__)) && !defined(__GNU__) && !defined(__VMS)
   /* Fill in physical addresses for each interface */
   for (ent = addrs; ent != NULL; ent = ent->ifa_next) {
     if (uv__ifaddr_exclude(ent, UV__EXCLUDE_IFPHYS))

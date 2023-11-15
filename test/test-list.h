@@ -265,7 +265,7 @@ TEST_DECLARE   (pipe_ref)
 TEST_DECLARE   (pipe_ref2)
 TEST_DECLARE   (pipe_ref3)
 TEST_DECLARE   (pipe_ref4)
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__VMS)
 TEST_DECLARE   (pipe_close_stdout_read_stdin)
 #endif
 TEST_DECLARE   (pipe_set_non_blocking)
@@ -540,7 +540,7 @@ TEST_DECLARE   (not_writable_after_shutdown)
 TEST_DECLARE   (not_readable_nor_writable_on_read_error)
 TEST_DECLARE   (readable_on_eof)
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__VMS)
 TEST_DECLARE  (fork_timer)
 TEST_DECLARE  (fork_socketpair)
 TEST_DECLARE  (fork_socketpair_started)
@@ -605,7 +605,7 @@ TASK_LIST_START
   TEST_ENTRY  (pipe_connect_on_prepare)
 
   TEST_ENTRY  (pipe_server_close)
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__VMS)
   TEST_ENTRY  (pipe_close_stdout_read_stdin)
 #endif
   /* Seems to be either about 0.5s or 5s, depending on the OS. */
@@ -1179,7 +1179,7 @@ TASK_LIST_START
   TEST_ENTRY  (req_type_name)
   TEST_ENTRY  (getters_setters)
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__VMS)
   TEST_ENTRY  (fork_timer)
   TEST_ENTRY  (fork_socketpair)
   TEST_ENTRY  (fork_socketpair_started)

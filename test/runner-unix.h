@@ -26,6 +26,9 @@
 #include <stdio.h> /* FILE */
 
 typedef struct {
+#ifdef __VMS
+  char* stdout_filename;
+#endif
   FILE* stdout_file;
   pid_t pid;
   char* name;

@@ -33,7 +33,8 @@ libuv.olb : libuv.olb(fs-poll=fs-poll.obj), libuv.olb(idna=idna.obj),-
         libuv.olb(process=process.obj), libuv.olb(signal=signal.obj),-
         libuv.olb(no-fsevents=no-fsevents.obj),-
         libuv.olb(no-proctitle=no-proctitle.obj),-
-        libuv.olb(posix-poll=posix-poll.obj)
+        libuv.olb(posix-poll=posix-poll.obj),-
+        libuv.olb(error=error.obj), libuv.olb(bsd-ifaddrs=bsd-ifaddrs.obj)
     WRITE SYS$OUTPUT "libuv.olb built."
 
 uv_run_benchmarks.exe : benchmark-async.obj, benchmark-async-pummel.obj,-
@@ -97,7 +98,7 @@ uv_run_tests.exe :  blackhole-server.obj, echo-server.obj, run-tests.obj,-
                 test-tcp-close-reset.obj, test-tcp-connect-error-after-write.obj,-
                 test-tcp-connect-error.obj, test-tcp-connect-timeout.obj,-
                 test-tcp-connect6-error.obj, test-tcp-create-socket-early.obj,-
-                test-tcp-flags.obj, test-tcp-oob.obj, test-tcp-read-stop.obj,-
+                test-tcp-flags.obj, test-tcp-oob.obj, test-tcp-open.obj, test-tcp-read-stop.obj,-
                 test-tcp-read-stop-start.obj, test-tcp-rst.obj, test-tcp-try-write.obj,-
                 test-tcp-shutdown-after-write.obj, test-tcp-write-in-a-row.obj,-
                 test-tcp-try-write-error.obj, test-tcp-unexpected-read.obj,-
@@ -141,6 +142,7 @@ uv-data-getter-setters.obj  : [-.src]uv-data-getter-setters.c, $(COMMON_H)
 version.obj                 : [-.src]version.c, $(COMMON_H)
 
 async.obj                   : [-.src.unix]async.c, $(COMMON_H)
+bsd-ifaddrs.obj             : [-.src.unix]bsd-ifaddrs.c, $(COMMON_H)
 core.obj                    : [-.src.unix]core.c, $(COMMON_H)
 dl.obj                      : [-.src.unix]dl.c, $(COMMON_H)
 fs.obj                      : [-.src.unix]fs.c, $(COMMON_H)
@@ -162,6 +164,7 @@ tty.obj                     : [-.src.unix]tty.c, $(COMMON_H)
 udp.obj                     : [-.src.unix]udp.c, $(COMMON_H)
 vms.obj                     : [-.src.unix]vms.c, $(COMMON_H)
 vms-syscalls.obj            : [-.src.unix]vms-syscalls.c, $(COMMON_H)
+error.obj                   : [-.src.vms]error.c, $(COMMON_H)
 
 benchmark-async.obj         : [-.test]benchmark-async.c, $(COMMON_H)
 benchmark-async-pummel.obj  : [-.test]benchmark-async-pummel.c, $(COMMON_H)

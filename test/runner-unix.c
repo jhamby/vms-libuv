@@ -39,6 +39,10 @@
 #ifdef __VMS
 #include <unixlib.h>
 #include <poll.h>
+#include <fcntl.h>
+extern "C" {
+char* mkdtemp(char* path);
+}
 #else
 #include <sys/select.h>
 #endif
@@ -119,12 +123,20 @@ int process_start(char* name, char* part, process_info_t* p, int is_helper) {
   args[n++] = part;
   args[n++] = NULL;
 
+#ifdef __VMS
+  char *tmpname = strdup("tmpfile_XXXXXX");
+  mkdtemp(tmpname);
+  stdout_file = fopen(tmpname, "a");
+  fclose(stdout_file);
+  stdout_fd = open(tmpname, O_RDONLY | O_CLOEXEC, 0600);
+#else
   stdout_file = tmpfile();
   stdout_fd = fileno(stdout_file);
   if (!stdout_file) {
     perror("tmpfile");
     return -1;
   }
+#endif
 
   if (is_helper) {
     if (pipe(pipefd)) {
@@ -156,12 +168,12 @@ int process_start(char* name, char* part, process_info_t* p, int is_helper) {
   }
 
   if (pid == 0) {
-#if defined(__VMS)
-//    decc$set_child_standard_streams(-1, stdout_fd, stdout_fd);
-#else
     /* child */
     if (is_helper)
       closefd(pipefd[0]);
+#if defined(__VMS)
+    decc$set_child_standard_streams(-1, stdout_fd, -1);
+#else
     dup2(stdout_fd, STDOUT_FILENO);
     dup2(stdout_fd, STDERR_FILENO);
 #endif
@@ -179,7 +191,12 @@ int process_start(char* name, char* part, process_info_t* p, int is_helper) {
   /* parent */
   p->pid = pid;
   p->name = strdup(name);
+#ifdef __VMS
+  p->stdout_filename = tmpname;
+  close(stdout_fd);
+#else
   p->stdout_file = stdout_file;
+#endif
 
   if (!is_helper)
     return 0;
@@ -338,9 +355,9 @@ int process_wait(process_info_t* vec, int n, int timeout) {
     FD_SET(args.pipe[0], &fds);
 
     r = select(args.pipe[0] + 1, &fds, NULL, NULL, &tv);
+#endif
     if (!(r == -1 && errno == EINTR))
       break;
-#endif
 
     if (gettimeofday(&tv, NULL))
       abort();
@@ -376,6 +393,13 @@ terminate:
 /* Returns the number of bytes in the stdio output buffer for process `p`. */
 long int process_output_size(process_info_t *p) {
   /* Size of the p->stdout_file */
+#ifdef __VMS
+  p->stdout_file = fopen(p->stdout_filename, "r");
+  if (!p->stdout_file) {
+    perror("fopen");
+    return -1;
+  }
+#endif
   struct stat buf;
 
   memset(&buf, 0, sizeof(buf));

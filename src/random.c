@@ -28,6 +28,12 @@
 #  include "unix/internal.h"
 #endif
 
+#ifdef __VMS
+#define __NEW_STARLET 1
+#include <starlet.h>
+#include <stsdef.h>
+#endif
+
 static int uv__random(void* buf, size_t buflen) {
   int rc;
 
@@ -62,6 +68,18 @@ static int uv__random(void* buf, size_t buflen) {
 #elif defined(_WIN32)
   uv__once_init();
   rc = uv__random_rtlgenrandom(buf, buflen);
+#elif defined(__VMS)
+  unsigned char* bufptr = (unsigned char*) buf;
+  unsigned char* bufend = bufptr + buflen;
+  /* We can request up to 256 bytes in a single call. */
+  for (; bufptr < bufend; bufptr += 256) {
+    int len = (bufend - bufptr) >= 256 ? 256 : (bufend - bufptr);
+    unsigned int sts = sys$get_entropy(bufptr, len);
+    if (!$VMS_STATUS_SUCCESS(sts)) {
+      return uv__translate_vms_error(sts);
+    }
+  }
+  rc = 0;
 #else
   rc = uv__random_devurandom(buf, buflen);
 #endif

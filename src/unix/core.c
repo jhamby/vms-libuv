@@ -1552,7 +1552,6 @@ int uv_cpumask_size(void) {
 #endif
 }
 
-#ifndef __VMS
 int uv_os_getpriority(uv_pid_t pid, int* priority) {
   int r;
 
@@ -1560,7 +1559,11 @@ int uv_os_getpriority(uv_pid_t pid, int* priority) {
     return UV_EINVAL;
 
   errno = 0;
+#ifdef __VMS
+  r = 0;
+#else
   r = getpriority(PRIO_PROCESS, (int) pid);
+#endif
 
   if (r == -1 && errno != 0)
     return UV__ERR(errno);
@@ -1571,6 +1574,9 @@ int uv_os_getpriority(uv_pid_t pid, int* priority) {
 
 
 int uv_os_setpriority(uv_pid_t pid, int priority) {
+#ifdef __VMS
+  return UV_EINVAL;
+#else
   if (priority < UV_PRIORITY_HIGHEST || priority > UV_PRIORITY_LOW)
     return UV_EINVAL;
 
@@ -1578,8 +1584,8 @@ int uv_os_setpriority(uv_pid_t pid, int priority) {
     return UV__ERR(errno);
 
   return 0;
+#endif
 }
-#endif /* !__VMS */
 
 
 int uv_os_uname(uv_utsname_t* buffer) {

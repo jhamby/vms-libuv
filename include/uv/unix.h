@@ -38,6 +38,10 @@
 #include <arpa/inet.h>
 #include <netdb.h>  /* MAXHOSTNAMELEN on Solaris */
 
+#if defined(__VMS)
+#undef _XOPEN_SOURCE_EXTENDED /* to get struct winsize */
+#endif
+
 #include <termios.h>
 #include <pwd.h>
 

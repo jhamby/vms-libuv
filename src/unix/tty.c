@@ -25,6 +25,7 @@
 #ifdef __VMS
 #include <atomic>
 using namespace std;
+#include <stropts.h>
 #else
 #include <stdatomic.h>
 #endif
@@ -351,7 +352,6 @@ int uv_tty_set_mode(uv_tty_t* tty, uv_tty_mode_t mode) {
   return rc;
 }
 
-#ifndef __VMS
 int uv_tty_get_winsize(uv_tty_t* tty, int* width, int* height) {
   struct winsize ws;
   int err;
@@ -368,7 +368,6 @@ int uv_tty_get_winsize(uv_tty_t* tty, int* width, int* height) {
 
   return 0;
 }
-#endif
 
 
 uv_handle_type uv_guess_handle(uv_file file) {

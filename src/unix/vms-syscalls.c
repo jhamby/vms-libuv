@@ -25,6 +25,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#ifdef __VMS
+#define __NEW_STARLET 1
+#include <starlet.h>
+#include <stsdef.h>
+#endif
+
 /* Implement a few syscalls missing from OpenVMS (copied from MVS port). */
 
 int scandir(const char* maindir, struct dirent*** namelist,
@@ -96,7 +102,6 @@ char* mkdtemp(char* path) {
   unsigned int tries, i;
   size_t len;
   uint64_t v;
-  int fd;
   int retval;
   int saved_errno;
 
@@ -107,15 +112,14 @@ char* mkdtemp(char* path) {
     return NULL;
   }
 
-  fd = open("/dev/urandom", O_RDONLY);
-  if (fd == -1)
-    return NULL;
-
   tries = TMP_MAX;
   retval = -1;
   do {
-    if (read(fd, &v, sizeof(v)) != sizeof(v))
-      break;
+    unsigned int sts = sys$get_entropy(&v, sizeof(v));
+    if (!$VMS_STATUS_SUCCESS(sts)) {
+      errno = uv__translate_vms_error(sts);
+      return NULL;
+    }
 
     cp = ep - num_x;
     for (i = 0; i < num_x; i++) {
@@ -132,7 +136,6 @@ char* mkdtemp(char* path) {
   } while (--tries);
 
   saved_errno = errno;
-  uv__close(fd);
   if (tries == 0) {
     errno = EEXIST;
     return NULL;

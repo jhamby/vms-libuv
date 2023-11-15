@@ -39,3 +39,51 @@ uint64_t uv__hrtime(uv_clocktype_t type) {
   (void) sys$gettim_prec(&now);
   return (now - VMS_EPOCH_OFFSET) * 100;
 }
+
+
+void uv_loadavg(double avg[3]) {
+  /* TODO: use load average device */
+  avg[0] = 0.0;
+  avg[1] = 0.0;
+  avg[2] = 0.0;
+}
+
+
+int uv_exepath(char* buffer, size_t* size) {
+  return UV_EINVAL;
+}
+
+
+uint64_t uv_get_free_memory(void) {
+  return 0;
+}
+
+
+uint64_t uv_get_total_memory(void) {
+  return 0;
+}
+
+
+uint64_t uv_get_constrained_memory(void) {
+  return 0;  /* Memory constraints are unknown. */
+}
+
+
+uint64_t uv_get_available_memory(void) {
+  return uv_get_free_memory();
+}
+
+
+int uv_resident_set_memory(size_t* rss) {
+  return UV_EINVAL;
+}
+
+
+int uv_uptime(double* uptime) {
+  return UV_EINVAL;
+}
+
+
+int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
+  return UV_EINVAL;
+}
