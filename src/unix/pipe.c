@@ -469,8 +469,13 @@ int uv_pipe(uv_os_fd_t fds[2], int read_flags, int write_flags) {
     return 0;
   }
 #else
+#ifdef __VMS
+  if (socketpair(AF_UNIX, SOCK_STREAM, 0, temp))
+    return UV__ERR(errno);
+#else
   if (pipe(temp))
     return UV__ERR(errno);
+#endif
 
   if ((err = uv__cloexec(temp[0], 1)))
     goto fail;

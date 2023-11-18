@@ -135,16 +135,11 @@ static void uv__async_spin(uv_async_t* handle) {
       uv__cpu_relax();
     }
 
-/* We can't yield the CPU on OpenVMS or other threads won't wake up.
- * This will be replaced with a local event flag instead of write()/poll().
- */
-#ifndef __VMS
     /* Yield the CPU. We may have preempted the other thread while it's
      * inside the critical section and if it's running on the same CPU
      * as us, we'll just burn CPU cycles until the end of our time slice.
      */
     sched_yield();
-#endif
   }
 }
 

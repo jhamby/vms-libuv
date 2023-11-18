@@ -25,8 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//#define NUM_PINGS (1000 * 1000)
-#define NUM_PINGS (1000)
+#define NUM_PINGS (1000 * 1000)
 
 struct ctx {
   uv_loop_t loop;
