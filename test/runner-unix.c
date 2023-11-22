@@ -495,6 +495,11 @@ int process_reap(process_info_t *p) {
 void process_cleanup(process_info_t *p) {
   fclose(p->stdout_file);
   free(p->name);
+#ifdef __VMS
+  while (remove(p->stdout_filename) == 0)
+    ;
+  free(p->stdout_filename);
+#endif
 }
 
 
