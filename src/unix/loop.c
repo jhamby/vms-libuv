@@ -67,12 +67,16 @@ int uv_loop_init(uv_loop_t* loop) {
 
   loop->closing_handles = NULL;
   uv__update_time(loop);
+#ifndef __VMS
   loop->async_io_watcher.fd = -1;
   loop->async_wfd = -1;
+#endif
   loop->signal_pipefd[0] = -1;
   loop->signal_pipefd[1] = -1;
   loop->backend_fd = -1;
+#ifndef __VMS
   loop->emfile_fd = -1;
+#endif
 
   loop->timer_counter = 0;
   loop->stop_flag = 0;
@@ -130,6 +134,7 @@ fail_metrics_mutex_init:
 
 
 int uv_loop_fork(uv_loop_t* loop) {
+#ifndef __VMS
   int err;
   unsigned int i;
   uv__io_t* w;
@@ -157,6 +162,7 @@ int uv_loop_fork(uv_loop_t* loop) {
       uv__queue_insert_tail(&loop->watcher_queue, &w->watcher_queue);
     }
   }
+#endif
 
   return 0;
 }
@@ -167,12 +173,14 @@ void uv__loop_close(uv_loop_t* loop) {
 
   uv__signal_loop_cleanup(loop);
   uv__platform_loop_delete(loop);
+#ifndef __VMS
   uv__async_stop(loop);
 
   if (loop->emfile_fd != -1) {
     uv__close(loop->emfile_fd);
     loop->emfile_fd = -1;
   }
+#endif
 
   if (loop->backend_fd != -1) {
     uv__close(loop->backend_fd);

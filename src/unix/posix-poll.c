@@ -33,10 +33,6 @@
 #include <errno.h>
 #include <unistd.h>
 
-#ifdef __VMS
-#include <poll.h>
-#endif
-
 int uv__platform_loop_init(uv_loop_t* loop) {
   loop->poll_fds = NULL;
   loop->poll_fds_used = 0;
@@ -177,13 +173,11 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
 
   /* Prepare a set of signals to block around poll(), if any.  */
   pset = NULL;
-#ifndef __VMS
   if (loop->flags & UV_LOOP_BLOCK_SIGPROF) {
     pset = &set;
     sigemptyset(pset);
     sigaddset(pset, SIGPROF);
   }
-#endif
 
   assert(timeout >= -1);
   time_base = loop->time;
@@ -213,18 +207,13 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
      */
     lfields->current_timeout = timeout;
 
-#ifndef __VMS
     if (pset != NULL)
       if (pthread_sigmask(SIG_BLOCK, pset, NULL))
         abort();
-#endif
-//fprintf(stderr, "poll(fds, %zu, %d)\n", loop->poll_fds_used, timeout);
     nfds = poll(loop->poll_fds, (nfds_t)loop->poll_fds_used, timeout);
-#ifndef __VMS
     if (pset != NULL)
       if (pthread_sigmask(SIG_UNBLOCK, pset, NULL))
         abort();
-#endif
 
     /* Update loop->time unconditionally. It's tempting to skip the update when
      * timeout == 0 (i.e. non-blocking poll) but there is no guarantee that the

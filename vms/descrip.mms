@@ -20,7 +20,7 @@ libuv.olb : libuv.olb(fs-poll=fs-poll.obj), libuv.olb(idna=idna.obj),-
         libuv.olb(threadpool=threadpool.obj), libuv.olb(timer=timer.obj),-
         libuv.olb(uv-common=uv-common.obj), libuv.olb(version=version.obj),-
         libuv.olb(uv-data-getter-setters=uv-data-getter-setters.obj),-
-        libuv.olb(async=async.obj), libuv.olb(core=core.obj),-
+        libuv.olb(vms-async=vms-async.obj), libuv.olb(core=core.obj),-
         libuv.olb(dl=dl.obj), libuv.olb(thread.obj),-
         libuv.olb(fs=fs.obj), libuv.olb(poll=poll.obj),-
         libuv.olb(getaddrinfo=getaddrinfo.obj),-
@@ -33,9 +33,9 @@ libuv.olb : libuv.olb(fs-poll=fs-poll.obj), libuv.olb(idna=idna.obj),-
         libuv.olb(process=process.obj), libuv.olb(signal=signal.obj),-
         libuv.olb(no-fsevents=no-fsevents.obj),-
         libuv.olb(no-proctitle=no-proctitle.obj),-
-        libuv.olb(posix-poll=posix-poll.obj),-
-        libuv.olb(error=error.obj), libuv.olb(bsd-ifaddrs=bsd-ifaddrs.obj)
-    WRITE SYS$OUTPUT "libuv.olb built."
+        libuv.olb(vms-poll=vms-poll.obj),-
+        libuv.olb(vms-error=vms-error.obj), libuv.olb(bsd-ifaddrs=bsd-ifaddrs.obj)
+    @ continue
 
 uv_run_benchmarks.exe : benchmark-async.obj, benchmark-async-pummel.obj,-
                 benchmark-fs-stat.obj, benchmark-getaddrinfo.obj,-
@@ -47,9 +47,9 @@ uv_run_benchmarks.exe : benchmark-async.obj, benchmark-async-pummel.obj,-
                 benchmark-spawn.obj, benchmark-tcp-write-batch.obj,-
                 benchmark-thread.obj, benchmark-udp-pummel.obj,-
                 runner.obj, run-benchmarks.obj, echo-server.obj,-
-                blackhole-server.obj, runner-unix.obj
-        LINK/Trace/NoDebug/Threads/EXE=uv_run_benchmarks.exe $(MMS$SOURCE_LIST),-
-                libuv.olb/library
+                blackhole-server.obj, runner-unix.obj, libuv.olb
+        LINK/Trace/NoDebug/Threads/EXE=uv_run_benchmarks.exe -
+                $(MMS$SOURCE_LIST)/LIBRARY
 
 uv_run_tests.exe :  blackhole-server.obj, echo-server.obj, run-tests.obj,-
                 runner.obj, runner-unix.obj,-
@@ -119,8 +119,9 @@ uv_run_tests.exe :  blackhole-server.obj, echo-server.obj, run-tests.obj,-
                 test-udp-send-immediate.obj, test-udp-sendmmsg-error.obj,-
                 test-udp-send-unreachable.obj, test-udp-try-send.obj,-
                 test-udp-recv-in-a-row.obj, test-uname.obj, test-walk-handles.obj,-
-                test-watcher-cross-stop.obj
-        LINK/Trace/NoDebug/Threads/EXE=uv_run_tests.exe $(MMS$SOURCE_LIST), libuv.olb/library
+                test-watcher-cross-stop.obj, libuv.olb
+        LINK/Trace/NoDebug/Threads/EXE=uv_run_tests.exe -
+                $(MMS$SOURCE_LIST)/LIBRARY
 
 
 COMMON_H = [-.include]uv.h, [-.include.uv]unix.h, [-.include.uv]threadpool.h,-
@@ -141,7 +142,6 @@ uv-common.obj               : [-.src]uv-common.c, $(COMMON_H)
 uv-data-getter-setters.obj  : [-.src]uv-data-getter-setters.c, $(COMMON_H)
 version.obj                 : [-.src]version.c, $(COMMON_H)
 
-async.obj                   : [-.src.unix]async.c, $(COMMON_H)
 bsd-ifaddrs.obj             : [-.src.unix]bsd-ifaddrs.c, $(COMMON_H)
 core.obj                    : [-.src.unix]core.c, $(COMMON_H)
 dl.obj                      : [-.src.unix]dl.c, $(COMMON_H)
@@ -154,7 +154,6 @@ no-fsevents.obj             : [-.src.unix]no-fsevents.c, $(COMMON_H)
 no-proctitle.obj            : [-.src.unix]no-proctitle.c, $(COMMON_H)
 pipe.obj                    : [-.src.unix]pipe.c, $(COMMON_H)
 poll.obj                    : [-.src.unix]poll.c, $(COMMON_H)
-posix-poll.obj              : [-.src.unix]posix-poll.c, $(COMMON_H)
 process.obj                 : [-.src.unix]process.c, $(COMMON_H)
 signal.obj                  : [-.src.unix]signal.c, $(COMMON_H)
 stream.obj                  : [-.src.unix]stream.c, $(COMMON_H)
@@ -163,8 +162,10 @@ tcp.obj                     : [-.src.unix]tcp.c, $(COMMON_H)
 tty.obj                     : [-.src.unix]tty.c, $(COMMON_H)
 udp.obj                     : [-.src.unix]udp.c, $(COMMON_H)
 vms.obj                     : [-.src.unix]vms.c, $(COMMON_H)
+vms-async.obj               : [-.src.unix]vms-async.c, $(COMMON_H)
+vms-error.obj               : [-.src.unix]vms-error.c, $(COMMON_H)
+vms-poll.obj                : [-.src.unix]vms-poll.c, $(COMMON_H)
 vms-syscalls.obj            : [-.src.unix]vms-syscalls.c, $(COMMON_H)
-error.obj                   : [-.src.vms]error.c, $(COMMON_H)
 
 benchmark-async.obj         : [-.test]benchmark-async.c, $(COMMON_H)
 benchmark-async-pummel.obj  : [-.test]benchmark-async-pummel.c, $(COMMON_H)
@@ -388,4 +389,4 @@ test-watcher-cross-stop.obj : [-.test]test-watcher-cross-stop.c, $(COMMON_H)
 
 ! Clean build artifacts
 clean :
-	del/log *.exe;*, *.obj;*, *.olb;*
+	delete *.exe;*, *.obj;*, *.olb;*

@@ -19,13 +19,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef UV_UNIX_H
-#define UV_UNIX_H
+#ifndef UV_VMS_H
+#define UV_VMS_H
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>
+
+#include <time.h>
+#define _XOPEN_SOURCE_EXTENDED /* for new 64-bit iovec */
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -33,42 +36,17 @@
 #include <arpa/inet.h>
 #include <netdb.h>  /* MAXHOSTNAMELEN on Solaris */
 
+#undef _XOPEN_SOURCE_EXTENDED /* to get struct winsize */
+
 #include <termios.h>
 #include <pwd.h>
 
-#if !defined(__MVS__)
 #include <semaphore.h>
 #include <sys/param.h> /* MAXHOSTNAMELEN on Linux and the BSDs */
-#endif
 #include <pthread.h>
 #include <signal.h>
 
 #include "uv/threadpool.h"
-
-#if defined(__linux__)
-# include "uv/linux.h"
-#elif defined (__MVS__)
-# include "uv/os390.h"
-#elif defined(__PASE__)  /* __PASE__ and _AIX are both defined on IBM i */
-# include "uv/posix.h"  /* IBM i needs uv/posix.h, not uv/aix.h */
-#elif defined(_AIX)
-# include "uv/aix.h"
-#elif defined(__sun)
-# include "uv/sunos.h"
-#elif defined(__APPLE__)
-# include "uv/darwin.h"
-#elif defined(__DragonFly__)       || \
-      defined(__FreeBSD__)         || \
-      defined(__OpenBSD__)         || \
-      defined(__NetBSD__)
-# include "uv/bsd.h"
-#elif defined(__CYGWIN__) || \
-      defined(__MSYS__)   || \
-      defined(__HAIKU__)  || \
-      defined(__QNX__)    || \
-      defined(__GNU__)
-# include "uv/posix.h"
-#endif
 
 #ifndef NI_MAXHOST
 # define NI_MAXHOST 1025
@@ -104,10 +82,6 @@ struct uv__io_s {
 # define UV_PLATFORM_SEM_T sem_t
 #endif
 
-#ifndef UV_PLATFORM_LOOP_FIELDS
-# define UV_PLATFORM_LOOP_FIELDS /* empty */
-#endif
-
 #ifndef UV_PLATFORM_FS_EVENT_FIELDS
 # define UV_PLATFORM_FS_EVENT_FIELDS /* empty */
 #endif
@@ -138,9 +112,6 @@ typedef pthread_cond_t uv_cond_t;
 typedef pthread_key_t uv_key_t;
 
 /* Note: guard clauses should match uv_barrier_init's in src/unix/thread.c. */
-#if defined(_AIX) || \
-    defined(__OpenBSD__) || \
-    !defined(PTHREAD_BARRIER_SERIAL_THREAD)
 /* TODO(bnoordhuis) Merge into uv_barrier_t in v2. */
 struct _uv_barrier {
   uv_mutex_t mutex;
@@ -152,14 +123,7 @@ struct _uv_barrier {
 
 typedef struct {
   struct _uv_barrier* b;
-# if defined(PTHREAD_BARRIER_SERIAL_THREAD)
-  /* TODO(bnoordhuis) Remove padding in v2. */
-  char pad[sizeof(pthread_barrier_t) - sizeof(struct _uv_barrier*)];
-# endif
 } uv_barrier_t;
-#else
-typedef pthread_barrier_t uv_barrier_t;
-#endif
 
 /* Platform-specific definitions for uv_spawn support. */
 typedef gid_t uv_gid_t;
@@ -170,44 +134,13 @@ typedef struct dirent uv__dirent_t;
 #define UV_DIR_PRIVATE_FIELDS \
   DIR* dir;
 
-#if defined(DT_UNKNOWN)
-# define HAVE_DIRENT_TYPES
-# if defined(DT_REG)
-#  define UV__DT_FILE DT_REG
-# else
-#  define UV__DT_FILE -1
-# endif
-# if defined(DT_DIR)
-#  define UV__DT_DIR DT_DIR
-# else
-#  define UV__DT_DIR -2
-# endif
-# if defined(DT_LNK)
-#  define UV__DT_LINK DT_LNK
-# else
-#  define UV__DT_LINK -3
-# endif
-# if defined(DT_FIFO)
-#  define UV__DT_FIFO DT_FIFO
-# else
-#  define UV__DT_FIFO -4
-# endif
-# if defined(DT_SOCK)
-#  define UV__DT_SOCKET DT_SOCK
-# else
-#  define UV__DT_SOCKET -5
-# endif
-# if defined(DT_CHR)
-#  define UV__DT_CHAR DT_CHR
-# else
-#  define UV__DT_CHAR -6
-# endif
-# if defined(DT_BLK)
-#  define UV__DT_BLOCK DT_BLK
-# else
-#  define UV__DT_BLOCK -7
-# endif
-#endif
+#define UV__DT_FILE -1
+#define UV__DT_DIR -2
+#define UV__DT_LINK -3
+#define UV__DT_FIFO -4
+#define UV__DT_SOCKET -5
+#define UV__DT_CHAR -6
+#define UV__DT_BLOCK -7
 
 /* Platform-specific definitions for uv_dlopen support. */
 #define UV_DYNAMIC /* empty */
@@ -235,20 +168,31 @@ typedef struct {
   struct uv__queue check_handles;                                             \
   struct uv__queue idle_handles;                                              \
   struct uv__queue async_handles;                                             \
-  void (*async_unused)(void);  /* TODO(bnoordhuis) Remove in libuv v2. */     \
-  uv__io_t async_io_watcher;                                                  \
-  int async_wfd;                                                              \
   struct {                                                                    \
     void* min;                                                                \
     unsigned int nelts;                                                       \
   } timer_heap;                                                               \
   uint64_t timer_counter;                                                     \
   uint64_t time;                                                              \
-  int signal_pipefd[2];                                                       \
   uv__io_t signal_io_watcher;                                                 \
   uv_signal_t child_watcher;                                                  \
-  int emfile_fd;                                                              \
-  UV_PLATFORM_LOOP_FIELDS                                                     \
+  uv_thread_t poll_thread;                                                    \
+  int poll_fds_iterating;                                                     \
+  int poll_thread_paused;                                                     \
+  struct pollfd* poll_fds;                                                    \
+  size_t poll_fds_used;                                                       \
+  size_t poll_fds_size;                                                       \
+  unsigned int async_ef;                                                      \
+  unsigned int timer_ef;                                                      \
+  int signal_pipefd[2];                                                       \
+  int poll_thread_sockfd[2];                                                  \
+  uv_async_t* ast_async_tail;                                                 \
+  int async_pending_flags;                                                    \
+
+/* Async pending type flags */
+#define UV__LOOP_PENDING_AST            1
+#define UV__LOOP_PENDING_ASYNC          2
+#define UV__LOOP_PENDING_POLL           4
 
 #define UV_REQ_TYPE_PRIVATE /* empty */
 
@@ -405,21 +349,7 @@ typedef struct {
 # define UV_FS_O_CREAT        0
 #endif
 
-#if defined(__linux__) && defined(__arm__)
-# define UV_FS_O_DIRECT       0x10000
-#elif defined(__linux__) && defined(__m68k__)
-# define UV_FS_O_DIRECT       0x10000
-#elif defined(__linux__) && defined(__mips__)
-# define UV_FS_O_DIRECT       0x08000
-#elif defined(__linux__) && defined(__powerpc__)
-# define UV_FS_O_DIRECT       0x20000
-#elif defined(__linux__) && defined(__s390x__)
-# define UV_FS_O_DIRECT       0x04000
-#elif defined(__linux__) && defined(__x86_64__)
-# define UV_FS_O_DIRECT       0x04000
-#elif defined(__linux__) && defined(__loongarch__)
-# define UV_FS_O_DIRECT       0x04000
-#elif defined(O_DIRECT)
+#if defined(O_DIRECT)
 # define UV_FS_O_DIRECT       O_DIRECT
 #else
 # define UV_FS_O_DIRECT       0
@@ -503,4 +433,4 @@ typedef struct {
 #define UV_FS_O_SEQUENTIAL    0
 #define UV_FS_O_TEMPORARY     0
 
-#endif /* UV_UNIX_H */
+#endif /* UV_VMS_H */

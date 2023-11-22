@@ -71,6 +71,8 @@ struct uv__queue {
 
 #if defined(_WIN32)
 # include "uv/win.h"
+#elif defined(__VMS)
+# include "uv/vms.h"
 #else
 # include "uv/unix.h"
 #endif

@@ -110,6 +110,7 @@ void uv__stream_init(uv_loop_t* loop,
   uv__queue_init(&stream->write_completed_queue);
   stream->write_queue_size = 0;
 
+#ifndef __VMS
   if (loop->emfile_fd == -1) {
     err = uv__open_cloexec("/dev/null", O_RDONLY);
     if (err < 0)
@@ -120,6 +121,7 @@ void uv__stream_init(uv_loop_t* loop,
     if (err >= 0)
       loop->emfile_fd = err;
   }
+#endif
 
 #if defined(__APPLE__)
   stream->select = NULL;
@@ -482,6 +484,7 @@ void uv__stream_destroy(uv_stream_t* stream) {
 }
 
 
+#ifndef __VMS
 /* Implements a best effort approach to mitigating accept() EMFILE errors.
  * We have a spare file descriptor stashed away that we close to get below
  * the EMFILE limit. Next, we accept all pending connections and close them
@@ -515,6 +518,7 @@ static int uv__emfile_trick(uv_loop_t* loop, int accept_fd) {
 
   return err;
 }
+#endif
 
 
 void uv__server_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
@@ -530,11 +534,13 @@ void uv__server_io(uv_loop_t* loop, uv__io_t* w, unsigned int events) {
   fd = uv__stream_fd(stream);
   err = uv__accept(fd);
 
+#ifndef __VMS
   if (err == UV_EMFILE || err == UV_ENFILE)
     err = uv__emfile_trick(loop, fd);  /* Shed load. */
 
   if (err < 0)
     return;
+#endif
 
   stream->accepted_fd = err;
   stream->connection_cb(stream, 0);
