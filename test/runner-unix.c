@@ -169,11 +169,11 @@ int process_start(char* name, char* part, process_info_t* p, int is_helper) {
 
   if (pid == 0) {
     /* child */
-    if (is_helper)
-      closefd(pipefd[0]);
 #if defined(__VMS)
     decc$set_child_standard_streams(-1, stdout_fd, -1);
 #else
+    if (is_helper)
+      closefd(pipefd[0]);
     dup2(stdout_fd, STDOUT_FILENO);
     dup2(stdout_fd, STDERR_FILENO);
 #endif
@@ -185,7 +185,11 @@ int process_start(char* name, char* part, process_info_t* p, int is_helper) {
 #endif
 #endif
     perror("execve()");
+#if defined(__VMS)
+    return 127;
+#else
     _exit(127);
+#endif
   }
 
   /* parent */
