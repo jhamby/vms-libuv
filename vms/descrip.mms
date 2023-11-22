@@ -6,10 +6,10 @@ LIBUV = libuv.olb
 ! Currently clang is required for <stdatomic>
 CC = CXX
 
-CFLAGS = $(CFLAGS)/Debug/Opt=(Lev=4)/Reentr=Multi/NoExcept/NoRTTI/Pointer=64=argv-
-  /DEFINE=(_USE_STD_STAT, _POSIX_EXIT, _SOCKADDR_LEN)/NoANSI_Alias-
-  /INCLUDE=([-.include],[-.include.uv],[-.src],[-.src.unix])-
-  /WARN=(DISABLE="c++11-compat-deprecated-writable-strings")
+CFLAGS = $(CFLAGS)/Debug/Opt=(Lev=3)/Reentr=Multi/NoExcept/NoRTTI/Pointer=64=argv-
+  /DEFINE=(_USE_STD_STAT, _POSIX_EXIT, _SOCKADDR_LEN)/NoANSI_Alias/Verbose-
+  /INCLUDE=([-.include],[-.include.uv],[-.src],[-.src.unix])/Stand=GNU11-
+  /WARN=(DISABLE=("c++11-compat-deprecated-writable-strings","writable-strings"))
 
 all : $(LIBUV), uv_run_benchmarks.exe, uv_run_tests.exe
 

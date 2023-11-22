@@ -114,7 +114,7 @@ typedef enum {
   if (!(eval_a operator eval_b)) {                           \
     fprintf(stderr,                                          \
             "Assertion failed in %s on line %d: `%s %s %s` " \
-            "(%"conv" %s %"conv")\n",                        \
+            "(%" conv " %s %" conv ")\n",                    \
             __FILE__,                                        \
             __LINE__,                                        \
             #a,                                              \
@@ -132,7 +132,7 @@ typedef enum {
   if (!(expr)) {                                               \
     fprintf(stderr,                                            \
             "Assertion failed in %s on line %d: `%s %s %s` "   \
-            "(%"conv" %s %"conv")\n",                          \
+            "(%" conv " %s %" conv ")\n",                      \
             __FILE__,                                          \
             __LINE__,                                          \
             #a,                                                \

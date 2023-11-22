@@ -403,7 +403,7 @@ void uv__io_poll(uv_loop_t* loop, int timeout) {
       }
     } else {
       /* Set timer ef to wake on timeout, then sleep on either event flag. */
-      struct _generic_64 delta_timeout = { -(timeout * 10000) };
+      struct _generic_64 delta_timeout = { (uint64_t) (-((int64_t) timeout * 10000)) };
       if (!$VMS_STATUS_SUCCESS(sys$setimr(loop->timer_ef, &delta_timeout,
                         NULL, (int64_t) loop->timer_ef, 0))) {
         abort();
