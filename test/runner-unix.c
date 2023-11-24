@@ -212,7 +212,12 @@ int process_start(char* name, char* part, process_info_t* p, int is_helper) {
     rc = read(pipefd[0], &n, 1);
   while (rc == -1 && errno == EINTR);
 
+#ifdef __VMS
+  /* This may fail with EBADF */
+  close(pipefd[0]);
+#else
   closefd(pipefd[0]);
+#endif
 
   if (rc == -1) {
     perror("read");
