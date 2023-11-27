@@ -28,8 +28,13 @@
 
 #define __NEW_STARLET 1
 
+#include <descrip.h>
 #include <gen64def.h>
+#include <lib$routines.h>
+#include <jpidef.h>
 #include <starlet.h>
+#include <stsdef.h>
+#include <syidef.h>
 
 /* Difference between UNIX and VMS epochs (to delay wrapping around). */
 #define VMS_EPOCH_OFFSET 35067168005400000ULL
@@ -54,13 +59,34 @@ int uv_exepath(char* buffer, size_t* size) {
 }
 
 
+/* Return free pagefile size as a proxy for free physical memory. */
 uint64_t uv_get_free_memory(void) {
-  return 0;
+  int syi_pagesize      = SYI$_PAGE_SIZE;
+  int syi_pagefile_free = SYI$_PAGEFILE_FREE;
+  unsigned int pagesize, pagefile_free;
+
+  if (!$VMS_STATUS_SUCCESS(lib$getsyi(&syi_pagesize, &pagesize)))
+    return 0;
+
+  if (!$VMS_STATUS_SUCCESS(lib$getsyi(&syi_pagefile_free, &pagefile_free)))
+    return 0;
+
+  return ((uint64_t) pagefile_free) * pagesize;
 }
 
 
 uint64_t uv_get_total_memory(void) {
-  return 0;
+  int syi_pagesize      = SYI$_PAGE_SIZE;
+  int syi_memsize       = SYI$_MEMSIZE;
+  unsigned int pagesize, memsize;
+
+  if (!$VMS_STATUS_SUCCESS(lib$getsyi(&syi_pagesize, &pagesize)))
+    return 0;
+
+  if (!$VMS_STATUS_SUCCESS(lib$getsyi(&syi_memsize, &memsize)))
+    return 0;
+
+  return ((uint64_t) memsize) * pagesize;
 }
 
 
@@ -74,16 +100,66 @@ uint64_t uv_get_available_memory(void) {
 }
 
 
+/* Return peak working set size as a proxy for current RSS */
 int uv_resident_set_memory(size_t* rss) {
-  return UV_EINVAL;
+  int jpi_val = JPI$_WSPEAK;
+  char buffer[22];      /* all uint64_t & int64_t values are <= 20 digits */
+  uint16_t result_len = 0;
+  $DESCRIPTOR64(result_dsc, buffer);
+  uint64_t wspeak_pagelets;
+
+  int ret = lib$getjpi(&jpi_val, NULL, NULL, NULL, &result_dsc, &result_len);
+  if (!$VMS_STATUS_SUCCESS(ret) || result_len >= sizeof(buffer)) {
+    return UV_EINVAL;
+  }
+  buffer[result_len] = '\0';
+
+  wspeak_pagelets = strtoull(buffer, NULL, 10);
+  if (wspeak_pagelets == ULLONG_MAX && errno == ERANGE)
+    return UV_EINVAL;
+
+  *rss = (size_t) (wspeak_pagelets * 512);
+  return 0;
 }
 
 
 int uv_uptime(double* uptime) {
-  return UV_EINVAL;
+  struct _generic_64 boot_time;
+  if (!$VMS_STATUS_SUCCESS(sys$gettim(&boot_time, 1))) {
+    return UV_EINVAL;
+  }
+  /* Convert from 100-ns units to seconds */
+  *uptime = (double) boot_time.gen64$q_quadword / 10000000.0;
+  return 0;
 }
 
 
 int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count) {
-  return UV_EINVAL;
+  unsigned int numcpus, idx = 0;
+  uv_cpu_info_t* cpu_info;
+
+  *cpu_infos = NULL;
+  *count = 0;
+
+  numcpus = sysconf(_SC_NPROCESSORS_ONLN);
+
+  *cpu_infos = (uv_cpu_info_t*) uv__malloc(numcpus * sizeof(uv_cpu_info_t));
+  if (!*cpu_infos) {
+    return UV_ENOMEM;
+  }
+
+  cpu_info = *cpu_infos;
+  for (idx = 0; idx < numcpus; idx++) {
+    cpu_info->speed = 0;
+    cpu_info->model = uv__strdup("unknown");
+    cpu_info->cpu_times.user = 0;
+    cpu_info->cpu_times.sys = 0;
+    cpu_info->cpu_times.idle = 0;
+    cpu_info->cpu_times.irq = 0;
+    cpu_info->cpu_times.nice = 0;
+    cpu_info++;
+  }
+  *count = numcpus;
+
+  return 0;
 }
