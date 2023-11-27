@@ -158,7 +158,7 @@ TEST_IMPL(platform_output) {
   ASSERT_EQ(pwd.gid, (unsigned long) -1);
   (void) member;
   grp.groupname = "ENOTSUP";
-#else
+#elif !defined(__VMS)
   ASSERT_OK(err);
   ASSERT_EQ(pwd.gid, grp.gid);
 #endif
@@ -166,7 +166,7 @@ TEST_IMPL(platform_output) {
   printf("uv_os_get_passwd:\n");
   printf("  euid: %ld\n", pwd.uid);
   printf("  gid: %ld (%s)\n", pwd.gid, grp.groupname);
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__VMS)
   printf("    members: [");
   for (member = grp.members; *member != NULL; member++) {
     printf(" %s", *member);
@@ -178,7 +178,7 @@ TEST_IMPL(platform_output) {
     printf("  shell: %s\n", pwd.shell);
   printf("  home directory: %s\n", pwd.homedir);
   uv_os_free_passwd(&pwd);
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__VMS)
   uv_os_free_group(&grp);
 #endif
 
