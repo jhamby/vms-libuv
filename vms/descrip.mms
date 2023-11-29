@@ -120,8 +120,78 @@ uv_run_tests.exe :  blackhole-server.obj, echo-server.obj, run-tests.obj,-
                 test-udp-send-unreachable.obj, test-udp-try-send.obj,-
                 test-udp-recv-in-a-row.obj, test-uname.obj, test-walk-handles.obj,-
                 test-watcher-cross-stop.obj, libuv.olb
-        LINK/Trace/NoDebug/Threads/EXE=uv_run_tests.exe -
-                $(MMS$SOURCE_LIST)/LIBRARY
+	lib/crea tmp.olb   blackhole-server.obj, echo-server.obj, run-tests.obj,-
+                runner.obj, runner-unix.obj,-
+                test-active.obj, test-async-null-cb.obj,-
+                test-async.obj, test-barrier.obj, test-callback-stack.obj,-
+                test-close-fd.obj, test-close-order.obj, test-condvar.obj,-
+                test-connect-unspecified.obj, test-connection-fail.obj,-
+                test-cwd-and-chdir.obj, test-default-loop-close.obj,-
+                test-delayed-accept.obj, test-dlerror.obj,-
+                test-eintr-handling.obj, test-embed.obj,-
+                test-emfile.obj, test-env-vars.obj, test-error.obj,-
+                test-fail-always.obj, test-fork.obj, test-fs-copyfile.obj,-
+                test-fs-event.obj, test-fs-poll.obj, test-fs.obj,-
+                test-fs-readdir.obj, test-fs-fd-hash.obj, test-fs-open-flags.obj,-
+                test-get-currentexe.obj, test-get-loadavg.obj, test-get-memory.obj,-
+                test-get-passwd.obj, test-getaddrinfo.obj, test-gethostname.obj,-
+                test-getnameinfo.obj, test-getsockname.obj, test-getters-setters.obj,-
+                test-gettimeofday.obj, test-handle-fileno.obj, test-homedir.obj
+	lib tmp.olb test-hrtime.obj, test-idle.obj, test-idna.obj, test-ip4-addr.obj,-
+                test-ip6-addr.obj, test-ip-name.obj, test-ipc-send-recv.obj,-
+                test-ipc-heavy-traffic-deadlock-bug.obj, test-ipc.obj,-
+                test-loop-alive.obj, test-loop-close.obj, test-loop-configure.obj,-
+                test-loop-handles.obj, test-loop-stop.obj, test-loop-time.obj,-
+                test-metrics.obj, test-multiple-listen.obj, test-mutexes.obj,-
+                test-not-readable-nor-writable-on-read-error.obj,-
+                test-not-writable-after-shutdown.obj, test-osx-select.obj,-
+                test-pass-always.obj, test-ping-pong.obj, test-pipe-bind-error.obj,-
+                test-pipe-close-stdout-read-stdin.obj, test-pipe-connect-error.obj,-
+                test-pipe-connect-multiple.obj, test-pipe-connect-prepare.obj,-
+                test-pipe-getsockname.obj, test-pipe-pending-instances.obj,-
+                test-pipe-sendmsg.obj, test-pipe-server-close.obj,-
+                test-pipe-set-fchmod.obj, test-pipe-set-non-blocking.obj,-
+                test-platform-output.obj, test-poll-close-doesnt-corrupt-stack.obj,-
+                test-poll-close.obj, test-poll-closesocket.obj, test-poll-oob.obj,-
+                test-poll-multiple-handles.obj, test-poll.obj, test-process-priority.obj,-
+                test-process-title-threadsafe.obj, test-process-title.obj,-
+                test-queue-foreach-delete.obj, test-random.obj, test-readable-on-eof.obj,-
+                test-ref.obj, test-run-nowait.obj, test-run-once.obj, test-semaphore.obj,-
+                test-shutdown-close.obj, test-shutdown-eof.obj, test-shutdown-twice.obj,-
+                test-shutdown-simultaneous.obj, test-signal-multiple-loops.obj,-
+                test-signal-pending-on-close.obj, test-signal.obj, test-spawn.obj,-
+                test-socket-buffer-size.obj, test-stdio-over-pipes.obj, test-strscpy.obj
+	lib tmp.olb test-strtok.obj, test-tcp-alloc-cb-fail.obj, test-tcp-bind-error.obj,-
+                test-tcp-bind6-error.obj, test-tcp-close-accept.obj, test-tcp-close.obj,-
+                test-tcp-close-after-read-timeout.obj, test-tcp-close-while-connecting.obj,-
+                test-tcp-close-reset.obj, test-tcp-connect-error-after-write.obj,-
+                test-tcp-connect-error.obj, test-tcp-connect-timeout.obj,-
+                test-tcp-connect6-error.obj, test-tcp-create-socket-early.obj,-
+                test-tcp-flags.obj, test-tcp-oob.obj, test-tcp-open.obj, test-tcp-read-stop.obj,-
+                test-tcp-read-stop-start.obj, test-tcp-rst.obj, test-tcp-try-write.obj,-
+                test-tcp-shutdown-after-write.obj, test-tcp-write-in-a-row.obj,-
+                test-tcp-try-write-error.obj, test-tcp-unexpected-read.obj,-
+                test-tcp-write-after-connect.obj, test-tcp-write-fail.obj,-
+                test-tcp-write-queue-order.obj, test-tcp-write-to-half-open-connection.obj,-
+                test-tcp-writealot.obj, test-test-macros.obj, test-thread-affinity.obj,-
+                test-thread-equal.obj, test-thread.obj, test-threadpool-cancel.obj,-
+                test-threadpool.obj, test-timer-again.obj, test-timer-from-check.obj,-
+                test-timer.obj, test-tmpdir.obj, test-tty-duplicate-key.obj,-
+                test-tty-escape-sequence-processing.obj, test-tty.obj,-
+                test-udp-alloc-cb-fail.obj, test-udp-bind.obj, test-udp-connect.obj,-
+                test-udp-connect6.obj, test-udp-create-socket-early.obj,-
+                test-udp-dgram-too-big.obj, test-udp-ipv6.obj, test-udp-mmsg.obj,-
+                test-udp-multicast-interface.obj, test-udp-multicast-interface6.obj,-
+                test-udp-multicast-join.obj, test-udp-multicast-join6.obj,-
+                test-udp-multicast-ttl.obj, test-udp-open.obj, test-udp-options.obj,-
+                test-udp-send-and-recv.obj, test-udp-send-hang-loop.obj,-
+                test-udp-send-immediate.obj, test-udp-sendmmsg-error.obj
+	lib tmp.olb test-udp-send-unreachable.obj, test-udp-try-send.obj,-
+                test-udp-recv-in-a-row.obj, test-uname.obj, test-walk-handles.obj,-
+                test-watcher-cross-stop.obj
+        LINK/Trace/NoDebug/Threads/EXE=uv_run_tests.exe run-tests.obj,-
+                tmp/lib,libuv/LIBRARY
+	delete tmp.olb;*
 
 
 COMMON_H = [-.include]uv.h, [-.include.uv]unix.h, [-.include.uv]threadpool.h,-
